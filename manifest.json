@@ -1,39 +1,131 @@
 {
+  "id": "/",
+  "scope": "/",
   "name": "تقویم شمسی هوشمند",
   "short_name": "تقویم شمسی",
-  "description": "تقویم شمسی، قمری و میلادی همراه با مناسبت‌ها، تبدیل تاریخ، اوقات شرعی و محاسبه سن",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait",
+  "description": "تقویم شمسی با قابلیت های هوشمند",
+  "start_url": "/",
+  "display": "fullscreen",
   "background_color": "#f8fafc",
   "theme_color": "#0d9488",
-  "dir": "rtl",
+  "orientation": "portrait-primary",
   "lang": "fa",
+  "dir": "rtl",
+  "display_override": ["fullscreen", "standalone", "window-controls-overlay"],
+  "prefer_related_applications": false,
+  "related_applications": [],
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/assets/icons/favicon-48-48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/favicon-72-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/favicon-96-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/favicon-144-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/favicon-192-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/assets/icons/favicon-512-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-maskable-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icons/icon-maskable-512.png",
+      "src": "/assets/icons/favicon-512-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "categories": ["utilities", "productivity", "tools"],
+  "screenshots": [
+    {
+      "src": "/assets/screenshots/01.jpg",
+      "sizes": "576x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "صفحه اصلی"
+    },
+    {
+      "src": "/assets/screenshots/02.jpg",
+      "sizes": "576x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "تقویم شمسی"
+    },
+    {
+      "src": "/assets/screenshots/03.jpg",
+      "sizes": "576x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "تقویم شمسی"
+    },
+    {
+      "src": "/assets/screenshots/04.jpg",
+      "sizes": "576x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "تقویم شمسی"
+    },
+    {
+      "src": "/assets/screenshots/05.jpg",
+      "sizes": "576x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "تقویم شمسی"
+    },
+    {
+      "src": "/assets/screenshots/06.jpg",
+      "sizes": "1853x897",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "تقویم شمسی"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "تقویم شمسی",
+      "short_name": "تقویم شمسی",
+      "description": "دسترسی سریع به تقویم شمسی",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/assets/icons/favicon-192-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

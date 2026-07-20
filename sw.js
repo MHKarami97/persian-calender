@@ -1,51 +1,191 @@
-/**
- * Service Worker — Cache-First for static assets (App Shell),
- * Network-First (with cache fallback) for cross-origin/API calls.
- */
-'use strict';
+﻿const CACHE_NAME = 'persian-date-v1.0.0';
+const OFFLINE_PAGE = '/offline.html';
 
-const CACHE_NAME = 'shamsi-calendar-v1';
-const APP_SHELL = [
-  './', './index.html', './manifest.json', './css/main.css',
-  './js/jalali.js', './js/hijri.js', './js/events.js', './js/events-service.js',
-  './js/prayer-times.js', './js/age-calculator.js', './js/theme.js', './js/app.js',
-  './icons/icon-192.png', './icons/icon-512.png',
+const urlsToCache = [
+    '/',
+    '/index.html',
+    '/offline.html',
+    '/assets/styles.css',
+    '/js/app.js',
+    '/js/age-calculator.js',
+    '/js/events-service.js',
+    '/js/events.js',
+    '/js/hijri.js',
+    '/js/jalali.js',
+    '/js/prayer-times.js',
+    '/js/theme.js',
+    '/assets/icons/favicon.ico',
+    '/assets/icons/favicon.png',
+    '/manifest.json',
+    '/assets/fonts/Vazirmatn-font-face.css',
+    '/assets/fonts/webfonts/Vazirmatn-Black.woff2',
+    '/assets/fonts/webfonts/Vazirmatn-Bold.woff2',
+    '/assets/fonts/webfonts/Vazirmatn-ExtraBold.woff2',
+    '/assets/fonts/webfonts/Vazirmatn-ExtraLight.woff2',
+    '/assets/fonts/webfonts/Vazirmatn-Light.woff2',
+    '/assets/fonts/webfonts/Vazirmatn-Medium.woff2',
+    '/assets/fonts/webfonts/Vazirmatn-Regular.woff2',
+    '/assets/fonts/webfonts/Vazirmatn-SemiBold.woff2',
+    '/assets/fonts/webfonts/Vazirmatn-Thin.woff2',
+    '/assets/fonts/webfonts/Vazirmatn[wght].woff2'
 ];
 
+// Helper function to determine if a URL should be cached
+function shouldCache(url) {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    
+    // Cache static assets
+    if (pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+        return true;
+    }
+    
+    // Cache HTML pages from the same origin
+    if (urlObj.origin === self.location.origin && 
+        (pathname.endsWith('/') || pathname.endsWith('.html'))) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Installation of caching patterns
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request).then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        return res;
-      }).catch(() => caches.match('./index.html')))
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                console.log('Opened cache');
+                return cache.addAll(urlsToCache);
+            })
     );
-    return;
-  }
-
-  event.respondWith(
-    fetch(request)
-      .then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        return res;
-      })
-      .catch(() => caches.match(request))
-  );
 });
+
+// Send message to all clients when new version is ready
+self.addEventListener('activate', (event) => {
+    const cacheWhitelist = [CACHE_NAME];
+
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheWhitelist.indexOf(cacheName) === -1) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        }).then(() => {
+            // Notify all clients about the update
+            return self.clients.matchAll().then((clients) => {
+                clients.forEach(client => {
+                    client.postMessage({
+                        type: 'SW_UPDATED',
+                        message: 'نسخه جدید در دسترس است'
+                    });
+                });
+            });
+        })
+    );
+
+    return self.clients.claim();
+});
+
+// Listen for skip waiting message from page
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
+
+// Fetch and cache strategy with offline fallback
+self.addEventListener('fetch', (event) => {
+    // Skip non-GET requests
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
+    event.respondWith(
+        caches.match(event.request)
+            .then((response) => {
+                // Return cached response if found
+                if (response) {
+                    return response;
+                }
+
+                const fetchRequest = event.request.clone();
+
+                return fetch(fetchRequest).then((response) => {
+                    // Don't cache if response is not valid
+                    if (!response || response.status !== 200 || response.type === 'error') {
+                        return response;
+                    }
+
+                    // Check if this URL should be cached
+                    if (shouldCache(event.request.url)) {
+                        const responseToCache = response.clone();
+
+                        caches.open(CACHE_NAME)
+                            .then((cache) => {
+                                cache.put(event.request, responseToCache);
+                            });
+                    }
+
+                    return response;
+                }).catch((error) => {
+                    console.log('Fetch failed:', error);
+                    
+                    // Return offline page for navigation requests
+                    if (event.request.mode === 'navigate') {
+                        return caches.match(OFFLINE_PAGE);
+                    }
+                    
+                    // For other requests, try to return cached version or reject
+                    return caches.match(event.request).then((cachedResponse) => {
+                        if (cachedResponse) {
+                            return cachedResponse;
+                        }
+                        throw error;
+                    });
+                });
+            })
+    );
+});
+
+// Background sync event
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sync-data') {
+        event.waitUntil(syncData());
+    }
+});
+
+// Example function to sync data
+async function syncData() {
+    console.log('Syncing data...');
+}
+
+// Push notification event
+self.addEventListener('push', (event) => {
+    const options = {
+        body: event.data ? event.data.text() : 'اعلان جدید',
+        icon: '/assets/icons/favicon.png',
+        badge: '/assets/icons/favicon.png',
+        vibrate: [100, 50, 100],
+        data: {
+            dateOfArrival: Date.now(),
+            primaryKey: 1
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification('بدن ساز', options)
+    );
+});
+
+// Notification click event
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    event.waitUntil(
+        clients.openWindow('/')
+    );
+});
+

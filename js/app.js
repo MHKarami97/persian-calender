@@ -37,14 +37,32 @@ class CalendarController {
     this.daysGrid = document.getElementById('days-grid');
     this.subDateRow = document.getElementById('sub-date-row');
     this.eventsListEl = document.getElementById('day-events-list');
+    this.todayBtn = document.getElementById('today-btn');
     this.holidayMap = {};
 
     document.getElementById('prev-month-btn').addEventListener('click', () => this.shiftMonth(1));
     document.getElementById('next-month-btn').addEventListener('click', () => this.shiftMonth(-1));
+    this.todayBtn.addEventListener('click', () => this.goToToday());
 
     this._renderWeekdayHeader();
     this.renderMonth();
     this.renderDayDetail(this.selectedDate);
+    this.renderSubDates(this.selectedDate);
+    this._updateTodayBtnVisibility();
+  }
+
+  goToToday() {
+    const today = JalaliDate.today();
+    this.viewDate = new JalaliDate(today.year, today.month, 1);
+    this.selectedDate = today;
+    this.renderMonth();
+    this.renderDayDetail(this.selectedDate);
+  }
+
+  _updateTodayBtnVisibility() {
+    const isTodaySelected = this.selectedDate.equals(JalaliDate.today());
+    this.todayBtn.disabled = isTodaySelected;
+    this.todayBtn.style.display = isTodaySelected ? 'none' : 'flex';
   }
 
   _renderWeekdayHeader() {
@@ -92,17 +110,21 @@ class CalendarController {
         this.selectedDate = new JalaliDate(this.viewDate.year, this.viewDate.month, day);
         this.renderMonth();
         this.renderDayDetail(this.selectedDate);
+        this._updateTodayBtnVisibility();
       });
     });
 
-    this.renderSubDates(this.viewDate);
+    this.renderSubDates(this.selectedDate);
+    this._updateTodayBtnVisibility();
   }
 
   renderSubDates(jalaliDate) {
     const g = jalaliDate.toGregorian();
     const hijri = HijriDate.fromGregorian(g);
+    const gregorianStr = `${g.getFullYear()}/${String(g.getMonth() + 1).padStart(2, '0')}/${String(g.getDate()).padStart(2, '0')}`;
     this.subDateRow.innerHTML = `
-      <span>میلادی: ${g.getFullYear()}/${g.getMonth() + 1}/${g.getDate()}</span>
+      <span class="sub-date-row__jalali">شمسی: ${jalaliDate.format()}</span>
+      <span>میلادی: ${gregorianStr}</span>
       <span>قمری: ${hijri.format()}</span>
     `;
   }
@@ -278,4 +300,144 @@ document.addEventListener('DOMContentLoaded', () => {
   new PrayerTimesController();
   initThemeToggle();
   registerServiceWorker();
+});
+
+// PWA Install Prompt
+let deferredPrompt;
+const installPromptDismissed = localStorage.getItem('installPromptDismissed');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    if (!installPromptDismissed) {
+    showInstallPrompt();
+    }
+});
+
+function showInstallPrompt() {
+    const prompt = document.createElement('div');
+    prompt.className = 'install-prompt';
+    prompt.innerHTML = `
+        <div class="install-prompt-text">
+            <div class="install-prompt-title">📱 نصب اپلیکیشن</div>
+        </div>
+        <button class="install-btn" id="installBtn">نصب</button>
+        <button class="close-install" id="closeInstall">✕</button>
+    `;
+    document.body.appendChild(prompt);
+
+    document.getElementById('installBtn').addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+
+        deferredPrompt.prompt();
+        const {outcome} = await deferredPrompt.userChoice;
+
+        if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+        }
+
+        deferredPrompt = null;
+        prompt.remove();
+    });
+
+    document.getElementById('closeInstall').addEventListener('click', () => {
+        localStorage.setItem('installPromptDismissed', 'true');
+        prompt.remove();
+    });
+}
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+    let newWorker;
+
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('SW registered:', registration);
+
+                // Check for updates periodically
+                setInterval(() => {
+                    registration.update();
+                }, 60000); // Check every minute
+
+                // Listen for waiting worker
+                registration.addEventListener('updatefound', () => {
+                    newWorker = registration.installing;
+
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New service worker is ready
+                            showUpdateNotification();
+                        }
+                    });
+                });
+            })
+            .catch(err => {
+                console.log('SW registration failed:', err);
+            });
+
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'SW_UPDATED') {
+                showUpdateNotification();
+            }
+        });
+
+        // Handle controller change
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+        });
+    });
+
+    // Show update notification
+    function showUpdateNotification() {
+        const notification = document.getElementById('updateNotification');
+        if (notification) {
+            notification.classList.remove('hidden');
+            notification.classList.add('show');
+        }
+    }
+
+    // Handle update button click
+    document.addEventListener('DOMContentLoaded', () => {
+        const updateButton = document.getElementById('updateButton');
+        const dismissButton = document.getElementById('dismissUpdate');
+        const notification = document.getElementById('updateNotification');
+
+        if (updateButton) {
+            updateButton.addEventListener('click', () => {
+                // Clear all caches and reload
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        names.forEach(name => {
+                            caches.delete(name);
+                        });
+                    }).then(() => {
+                        // Tell the service worker to skip waiting
+                        if (newWorker) {
+                            newWorker.postMessage({type: 'SKIP_WAITING'});
+                        } else {
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
+
+        if (dismissButton) {
+            dismissButton.addEventListener('click', () => {
+                notification.classList.remove('show');
+                notification.classList.add('hidden');
+            });
+        }
+    });
+}
+
+// Handle app installation
+window.addEventListener('appinstalled', () => {
+    console.log('App installed successfully');
+    deferredPrompt = null;
 });
