@@ -661,6 +661,10 @@ button {
 }
 
 /* Update Notification Styles */
+.hidden {
+    display: none !important;
+}
+
 .update-notification {
   position: fixed;
   bottom: 24px;
