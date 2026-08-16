@@ -12,6 +12,23 @@ const CACHE_TTL_DAYS = 30;
 const CACHE_TTL_MS = CACHE_TTL_DAYS * 24 * 60 * 60 * 1000;
 const API_BASE = 'https://pnldev.com/api/calender';
 
+const GREGORIAN_MONTHS_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const OCCASION_HIJRI_MONTHS = [
+  'محرم', 'صفر', 'ربیع‌الاول', 'ربیع الاول', 'ربیع‌الثانی', 'ربیع الثانی',
+  'جمادی‌الاول', 'جمادی الاول', 'جمادی‌الثانی', 'جمادی الثانی',
+  'رجب', 'شعبان', 'رمضان', 'شوال', 'ذیقعده', 'ذی‌القعده', 'ذیحجه', 'ذی‌الحجه'
+];
+
+function detectOccasionTag(text) {
+  if (GREGORIAN_MONTHS_EN.some((m) => text.includes(m))) return 'میلادی';
+  if (/[٠-٩]/.test(text) || OCCASION_HIJRI_MONTHS.some((m) => text.includes(m))) return 'قمری';
+  return 'شمسی';
+}
+
 class LocalCacheStore {
   static read(key) {
     try {
@@ -100,9 +117,43 @@ class EventsService {
     }
     return map;
   }
+
+  static async getMonthEventsList(jy, jm, daysInMonth) {
+    const apiMonthData = await EventsApiRepository.getMonthEvents(jy, jm);
+    const results = [];
+
+    for (let d = 1; d <= daysInMonth; d += 1) {
+      const dateObj = new JalaliDate(jy, jm, d);
+      const items = [];
+
+      EventRepository.getFixedJalaliEvents(jm, d).forEach((e) => {
+        items.push({ text: e.title, holiday: e.holiday, tag: 'شمسی' });
+      });
+
+      const g = dateObj.toGregorian();
+      EventRepository.getFixedGregorianEvents(g.getMonth() + 1, g.getDate()).forEach((e) => {
+        items.push({ text: e.title, holiday: e.holiday, tag: 'میلادی' });
+      });
+
+      const apiDay = apiMonthData && apiMonthData[String(d)];
+      if (apiDay && Array.isArray(apiDay.event)) {
+        apiDay.event.forEach((e) => {
+          items.push({ text: e, holiday: !!apiDay.holiday, tag: detectOccasionTag(e) });
+        });
+      }
+
+      if (items.length) {
+        const isHoliday = dateObj.weekDay === 5 || (apiDay && !!apiDay.holiday) || items.some((it) => it.holiday);
+        results.push({ day: d, isHoliday, items });
+      }
+    }
+
+    return results;
+  }
 }
 
 LocalCacheStore.purgeExpired();
 
 window.EventsService = EventsService;
 window.LocalCacheStore = LocalCacheStore;
+window.detectOccasionTag = detectOccasionTag;

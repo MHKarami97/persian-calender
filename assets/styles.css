@@ -322,11 +322,6 @@ button {
   align-items: center;
   gap: 4px;
 }
-.sub-date-row__jalali {
-  font-weight: 700;
-  color: var(--color-text);
-  font-size: 13px;
-}
 
 .event-item {
   display: flex;
@@ -577,6 +572,10 @@ button {
 }
 
 .day-detail {
+  margin-bottom: 10px;
+}
+
+.month-events-card {
   margin-bottom: 70px;
 }
 
@@ -800,3 +799,65 @@ button {
     right: 12px;
   }
 }
+
+.month-events-card { padding: 0; overflow: hidden; }
+
+.month-events-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.month-events-toggle__title { display: flex; align-items: center; gap: var(--space-2); }
+.month-events-toggle__title svg { width: 18px; height: 18px; stroke: var(--color-primary); }
+
+.month-events-toggle__chevron {
+  flex-shrink: 0;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.month-events-toggle[aria-expanded="true"] .month-events-toggle__chevron {
+  transform: rotate(180deg);
+}
+
+.month-events-body {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.month-events-day {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+}
+.month-events-day:first-child { border-top: none; }
+
+.month-events-day__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-2);
+}
+.month-events-day__label .day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-alt);
+  font-size: 12px;
+}
+.month-events-day--holiday .month-events-day__label { color: var(--color-holiday); }
+
+.month-events-day .event-item { padding: var(--space-2) 0; }

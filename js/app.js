@@ -40,6 +40,17 @@ class CalendarController {
     this.todayBtn = document.getElementById('today-btn');
     this.holidayMap = {};
 
+    this.monthEventsToggleBtn = document.getElementById('month-events-toggle-btn');
+    this.monthEventsBody = document.getElementById('month-events-body');
+    this.monthEventsList = document.getElementById('month-events-list');
+    this._monthEventsRequestId = 0;
+
+    this.monthEventsToggleBtn.addEventListener('click', () => {
+      const isOpen = this.monthEventsToggleBtn.getAttribute('aria-expanded') === 'true';
+      this.monthEventsToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+      this.monthEventsBody.hidden = isOpen;
+    });
+
     document.getElementById('prev-month-btn').addEventListener('click', () => this.shiftMonth(1));
     document.getElementById('next-month-btn').addEventListener('click', () => this.shiftMonth(-1));
     this.todayBtn.addEventListener('click', () => this.goToToday());
@@ -87,6 +98,7 @@ class CalendarController {
     const leadingEmpty = (firstDay.weekDay + 1) % 7;
 
     this.holidayMap = await EventsService.getMonthHolidayMap(year, month);
+    this.renderMonthEvents(year, month);
 
     const cells = [];
     for (let i = 0; i < leadingEmpty; i += 1) cells.push('<span class="day-cell day-cell--empty"></span>');
@@ -118,6 +130,37 @@ class CalendarController {
     this._updateTodayBtnVisibility();
   }
 
+  async renderMonthEvents(year, month) {
+    this._monthEventsRequestId += 1;
+    const requestId = this._monthEventsRequestId;
+
+    const daysInMonth = new JalaliDate(year, month, 1).daysInMonth();
+    const monthList = await EventsService.getMonthEventsList(year, month, daysInMonth);
+
+    if (requestId !== this._monthEventsRequestId) return; // ماه در همین حین عوض شده، این نتیجه دیگر معتبر نیست
+
+    if (!monthList.length) {
+      this.monthEventsList.innerHTML = `<div class="empty-state">مناسبتی برای این ماه ثبت نشده است.</div>`;
+      return;
+    }
+
+    this.monthEventsList.innerHTML = monthList.map((dayItem) => `
+      <div class="month-events-day${dayItem.isHoliday ? ' month-events-day--holiday' : ''}">
+        <div class="month-events-day__label">
+          <span class="day-number">${dayItem.day}</span>
+          <span>${PERSIAN_MONTH_NAMES[month - 1]}</span>
+        </div>
+        ${dayItem.items.map((it) => `
+          <div class="event-item${it.holiday ? ' event-item--holiday' : ''}">
+            <span class="badge"></span>
+            <span class="text">${it.text}</span>
+            <span class="tag">${it.tag}</span>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+
   renderSubDates(jalaliDate) {
     const g = jalaliDate.toGregorian();
     const hijri = HijriDate.fromGregorian(g);
@@ -135,7 +178,7 @@ class CalendarController {
 
     const items = [];
     data.solarEvents.forEach((e) => items.push({ text: e.title, holiday: e.holiday, tag: 'شمسی' }));
-    data.hijriEvents.forEach((e) => items.push({ text: e, holiday: false, tag: 'قمری/رسمی' }));
+    data.hijriEvents.forEach((e) => items.push({ text: e, holiday: false, tag: detectOccasionTag(e) }));
     data.gregorianEvents.forEach((e) => items.push({ text: e.title, holiday: e.holiday, tag: 'میلادی' }));
 
     if (!items.length) {
