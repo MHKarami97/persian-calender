@@ -1,191 +1,241 @@
-﻿const CACHE_NAME = 'persian-date-v1.0.6';
-const OFFLINE_PAGE = '/offline.html';
+const CACHE_NAME = "persian-date-v1.0.7";
+const OFFLINE_PAGE = "/offline.html";
 
-const urlsToCache = [
-    '/',
-    '/index.html',
-    '/offline.html',
-    '/assets/styles.css',
-    '/js/app.js',
-    '/js/age-calculator.js',
-    '/js/events-service.js',
-    '/js/events.js',
-    '/js/hijri.js',
-    '/js/jalali.js',
-    '/js/prayer-times.js',
-    '/js/theme.js',
-    '/assets/icons/favicon.ico',
-    '/assets/icons/favicon.png',
-    '/manifest.json',
-    '/assets/fonts/Vazirmatn-font-face.css',
-    '/assets/fonts/webfonts/Vazirmatn-Black.woff2',
-    '/assets/fonts/webfonts/Vazirmatn-Bold.woff2',
-    '/assets/fonts/webfonts/Vazirmatn-ExtraBold.woff2',
-    '/assets/fonts/webfonts/Vazirmatn-ExtraLight.woff2',
-    '/assets/fonts/webfonts/Vazirmatn-Light.woff2',
-    '/assets/fonts/webfonts/Vazirmatn-Medium.woff2',
-    '/assets/fonts/webfonts/Vazirmatn-Regular.woff2',
-    '/assets/fonts/webfonts/Vazirmatn-SemiBold.woff2',
-    '/assets/fonts/webfonts/Vazirmatn-Thin.woff2',
-    '/assets/fonts/webfonts/Vazirmatn[wght].woff2'
+const PRECACHE_URLS = [
+  "/",
+  "/index.html",
+  "/offline.html",
+  "/assets/styles.css",
+  "/js/app.js",
+  "/js/age-calculator.js",
+  "/js/events-service.js",
+  "/js/events.js",
+  "/js/hijri.js",
+  "/js/jalali.js",
+  "/js/prayer-times.js",
+  "/js/theme.js",
+  "/assets/icons/favicon.ico",
+  "/assets/icons/favicon.png",
+  "/manifest.json",
+  "/assets/fonts/Vazirmatn-font-face.css",
+  "/assets/fonts/webfonts/Vazirmatn-Black.woff2",
+  "/assets/fonts/webfonts/Vazirmatn-Bold.woff2",
+  "/assets/fonts/webfonts/Vazirmatn-ExtraBold.woff2",
+  "/assets/fonts/webfonts/Vazirmatn-ExtraLight.woff2",
+  "/assets/fonts/webfonts/Vazirmatn-Light.woff2",
+  "/assets/fonts/webfonts/Vazirmatn-Medium.woff2",
+  "/assets/fonts/webfonts/Vazirmatn-Regular.woff2",
+  "/assets/fonts/webfonts/Vazirmatn-SemiBold.woff2",
+  "/assets/fonts/webfonts/Vazirmatn-Thin.woff2",
+  "/assets/fonts/webfonts/Vazirmatn[wght].woff2",
 ];
 
-// Helper function to determine if a URL should be cached
-function shouldCache(url) {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname;
-    
-    // Cache static assets
-    if (pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
-        return true;
-    }
-    
-    // Cache HTML pages from the same origin
-    if (urlObj.origin === self.location.origin && 
-        (pathname.endsWith('/') || pathname.endsWith('.html'))) {
-        return true;
-    }
-    
-    return false;
+function isSameOrigin(url) {
+  return new URL(url).origin === self.location.origin;
 }
 
-// Installation of caching patterns
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('Opened cache');
-                return cache.addAll(urlsToCache);
-            })
-    );
-});
+function isStaticAsset(request) {
+  const url = new URL(request.url);
+  return /.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(
+    url.pathname,
+  );
+}
 
-// Send message to all clients when new version is ready
-self.addEventListener('activate', (event) => {
-    const cacheWhitelist = [CACHE_NAME];
+function isHtmlRequest(request) {
+  return (
+    request.mode === "navigate" ||
+    request.destination === "document" ||
+    request.headers.get("accept")?.includes("text/html")
+  );
+}
 
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheWhitelist.indexOf(cacheName) === -1) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        }).then(() => {
-            // Notify all clients about the update
-            return self.clients.matchAll().then((clients) => {
-                clients.forEach(client => {
-                    client.postMessage({
-                        type: 'SW_UPDATED',
-                        message: 'نسخه جدید در دسترس است'
-                    });
-                });
-            });
-        })
-    );
+async function getCache() {
+  return caches.open(CACHE_NAME);
+}
 
-    return self.clients.claim();
-});
+async function deleteOldCaches() {
+  const cacheNames = await caches.keys();
+  const staleCacheNames = cacheNames.filter((cacheName) => cacheName !== CACHE_NAME);
 
-// Listen for skip waiting message from page
-self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
-});
+  await Promise.all(staleCacheNames.map((cacheName) => caches.delete(cacheName)));
+}
 
-// Fetch and cache strategy with offline fallback
-self.addEventListener('fetch', (event) => {
-    // Skip non-GET requests
-    if (event.request.method !== 'GET') {
-        return;
+async function notifyClients(data) {
+  const clientList = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+
+  for (const client of clientList) {
+    client.postMessage(data);
+  }
+}
+
+async function networkFirstHtml(request) {
+  const cache = await getCache();
+
+  try {
+    const networkResponse = await fetch(request);
+
+    if (networkResponse && networkResponse.status === 200) {
+      await cache.put(request, networkResponse.clone());
     }
 
-    event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                // Return cached response if found
-                if (response) {
-                    return response;
-                }
-
-                const fetchRequest = event.request.clone();
-
-                return fetch(fetchRequest).then((response) => {
-                    // Don't cache if response is not valid
-                    if (!response || response.status !== 200 || response.type === 'error') {
-                        return response;
-                    }
-
-                    // Check if this URL should be cached
-                    if (shouldCache(event.request.url)) {
-                        const responseToCache = response.clone();
-
-                        caches.open(CACHE_NAME)
-                            .then((cache) => {
-                                cache.put(event.request, responseToCache);
-                            });
-                    }
-
-                    return response;
-                }).catch((error) => {
-                    console.log('Fetch failed:', error);
-                    
-                    // Return offline page for navigation requests
-                    if (event.request.mode === 'navigate') {
-                        return caches.match(OFFLINE_PAGE);
-                    }
-                    
-                    // For other requests, try to return cached version or reject
-                    return caches.match(event.request).then((cachedResponse) => {
-                        if (cachedResponse) {
-                            return cachedResponse;
-                        }
-                        throw error;
-                    });
-                });
-            })
-    );
-});
-
-// Background sync event
-self.addEventListener('sync', (event) => {
-    if (event.tag === 'sync-data') {
-        event.waitUntil(syncData());
+    return networkResponse;
+  } catch {
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
     }
+
+    const indexResponse = await cache.match("/index.html");
+    if (indexResponse) {
+      return indexResponse;
+    }
+
+    const offlineResponse = await cache.match(OFFLINE_PAGE);
+    if (offlineResponse) {
+      return offlineResponse;
+    }
+
+    return Response.error();
+  }
+}
+
+async function cacheFirstCurrentVersionOnly(request) {
+  const cache = await getCache();
+  const cachedResponse = await cache.match(request);
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  const networkResponse = await fetch(request);
+
+  if (
+    networkResponse &&
+    networkResponse.status === 200 &&
+    networkResponse.type !== "error"
+  ) {
+    await cache.put(request, networkResponse.clone());
+  }
+
+  return networkResponse;
+}
+
+async function networkOnlyWithOfflineFallback(request) {
+  try {
+    return await fetch(request);
+  } catch {
+    if (isHtmlRequest(request)) {
+      const cache = await getCache();
+      const offlineResponse = await cache.match(OFFLINE_PAGE);
+      if (offlineResponse) {
+        return offlineResponse;
+      }
+    }
+
+    return Response.error();
+  }
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await getCache();
+      await cache.addAll(PRECACHE_URLS);
+      await self.skipWaiting();
+    })(),
+  );
 });
 
-// Example function to sync data
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      await deleteOldCaches();
+      await self.clients.claim();
+
+      await notifyClients({
+        type: "SW_UPDATED",
+        version: CACHE_NAME,
+        message: "نسخه جدید برنامه فعال شد",
+      });
+    })(),
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (!event.data) {
+    return;
+  }
+
+  if (event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+    return;
+  }
+
+  if (event.data.type === "GET_VERSION") {
+    event.source?.postMessage({
+      type: "SW_VERSION",
+      version: CACHE_NAME,
+    });
+  }
+});
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+
+  if (request.method !== "GET") {
+    return;
+  }
+
+  if (!isSameOrigin(request.url)) {
+    event.respondWith(networkOnlyWithOfflineFallback(request));
+    return;
+  }
+
+  if (isHtmlRequest(request)) {
+    event.respondWith(networkFirstHtml(request));
+    return;
+  }
+
+  if (isStaticAsset(request)) {
+    event.respondWith(cacheFirstCurrentVersionOnly(request));
+    return;
+  }
+
+  event.respondWith(networkOnlyWithOfflineFallback(request));
+});
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-data") {
+    event.waitUntil(syncData());
+  }
+});
+
 async function syncData() {
-    console.log('Syncing data...');
+  return Promise.resolve();
 }
 
-// Push notification event
-self.addEventListener('push', (event) => {
-    const options = {
-        body: event.data ? event.data.text() : 'اعلان جدید',
-        icon: '/assets/icons/favicon.png',
-        badge: '/assets/icons/favicon.png',
-        vibrate: [100, 50, 100],
-        data: {
-            dateOfArrival: Date.now(),
-            primaryKey: 1
-        }
-    };
+self.addEventListener("push", (event) => {
+  const options = {
+    body: event.data ? event.data.text() : "اعلان جدید",
+    icon: "/assets/icons/favicon.png",
+    badge: "/assets/icons/favicon.png",
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1,
+    },
+  };
 
-    event.waitUntil(
-        self.registration.showNotification('بدن ساز', options)
-    );
+  event.waitUntil(
+    self.registration.showNotification("بدن ساز", options),
+  );
 });
 
-// Notification click event
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
 
-    event.waitUntil(
-        clients.openWindow('/')
-    );
+  event.waitUntil(clients.openWindow("/"));
 });
-
