@@ -1,4 +1,4 @@
-const CACHE_NAME = "persian-date-v1.0.7";
+const CACHE_NAME = "persian-date-v1.0.8";
 const OFFLINE_PAGE = "/offline.html";
 
 const PRECACHE_URLS = [
@@ -36,7 +36,16 @@ function isSameOrigin(url) {
 
 function isStaticAsset(request) {
   const url = new URL(request.url);
-  return /.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(
+
+  if (
+    ["style", "script", "image", "font", "manifest"].includes(
+      request.destination,
+    )
+  ) {
+    return true;
+  }
+
+  return /.(css|js|mjs|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json)$/.test(
     url.pathname,
   );
 }
@@ -57,7 +66,9 @@ async function deleteOldCaches() {
   const cacheNames = await caches.keys();
   const staleCacheNames = cacheNames.filter((cacheName) => cacheName !== CACHE_NAME);
 
-  await Promise.all(staleCacheNames.map((cacheName) => caches.delete(cacheName)));
+  await Promise.all(
+    staleCacheNames.map((cacheName) => caches.delete(cacheName)),
+  );
 }
 
 async function notifyClients(data) {
@@ -77,7 +88,7 @@ async function networkFirstHtml(request) {
   try {
     const networkResponse = await fetch(request);
 
-    if (networkResponse && networkResponse.status === 200) {
+    if (networkResponse && networkResponse.ok) {
       await cache.put(request, networkResponse.clone());
     }
 
@@ -112,11 +123,7 @@ async function cacheFirstCurrentVersionOnly(request) {
 
   const networkResponse = await fetch(request);
 
-  if (
-    networkResponse &&
-    networkResponse.status === 200 &&
-    networkResponse.type !== "error"
-  ) {
+  if (networkResponse && networkResponse.ok) {
     await cache.put(request, networkResponse.clone());
   }
 
@@ -130,6 +137,7 @@ async function networkOnlyWithOfflineFallback(request) {
     if (isHtmlRequest(request)) {
       const cache = await getCache();
       const offlineResponse = await cache.match(OFFLINE_PAGE);
+
       if (offlineResponse) {
         return offlineResponse;
       }
