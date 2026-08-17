@@ -1,22 +1,8 @@
-const CACHE_NAME = "persian-date-v1.0.8";
+const CACHE_NAME = "persian-date-v1.0.9";
 const OFFLINE_PAGE = "/offline.html";
 
 const PRECACHE_URLS = [
   "/",
-  "/index.html",
-  "/offline.html",
-  "/assets/styles.css",
-  "/js/app.js",
-  "/js/age-calculator.js",
-  "/js/events-service.js",
-  "/js/events.js",
-  "/js/hijri.js",
-  "/js/jalali.js",
-  "/js/prayer-times.js",
-  "/js/theme.js",
-  "/assets/icons/favicon.ico",
-  "/assets/icons/favicon.png",
-  "/manifest.json",
   "/assets/fonts/Vazirmatn-font-face.css",
   "/assets/fonts/webfonts/Vazirmatn-Black.woff2",
   "/assets/fonts/webfonts/Vazirmatn-Bold.woff2",
