@@ -2,19 +2,24 @@
  * Events Service — Fully offline. Provides lunar/day-specific Iranian
  * occasions purely from the local datasets defined in this file
  * (SOLAR_OCCASIONS / LUNAR_OCCASIONS / INTL_OCCASIONS). No network calls,
- * no remote API, no localStorage caching — everything is computed
- * on-demand from local data only.
+ * no remote API, no localStorage caching, and — as of this revision —
+ * NO dependency on js/events.js (EventRepository) either. Everything is
+ * computed on-demand from the local data in THIS file only.
  *
  * Design pattern: Repository Pattern (LocalOccasionsRepository is the
  * single source of truth) + Facade (EventsService exposes the same
  * shape the UI already expects).
  *
- * NOTE (fix): Origin of each occasion (شمسی/قمری/میلادی) is now tagged
- * at the source (where it is read from SOLAR_OCCASIONS / LUNAR_OCCASIONS /
- * INTL_OCCASIONS), instead of being guessed from the text afterwards.
- * The previous text-based guesser (detectOccasionTag) is kept only for
- * backward compatibility with any external caller that still imports it,
- * but it is no longer used internally.
+ * FIX (duplication bug): previously this service ALSO called
+ * `EventRepository.getFixedJalaliEvents` / `getFixedGregorianEvents`
+ * (from js/events.js) in addition to LocalOccasionsRepository. Since
+ * every date in js/events.js (Nowruz, 22 Bahman, 8 March, Nowruz UN day,
+ * Health day, Earth day, Labor day, Environment day, Peace day, Elderly
+ * day, Food day, Human Rights day, etc.) is already present — and more
+ * completely — inside SOLAR_OCCASIONS / INTL_OCCASIONS below, every one
+ * of those occasions was rendered TWICE. js/events.js is now redundant:
+ * delete the file and remove its <script src="js/events.js"> tag from
+ * index.html.
  */
 "use strict";
 
@@ -126,6 +131,7 @@ const SOLAR_OCCASIONS = {
   },
   11: {
     22: { title: "پیروزی انقلاب اسلامی", holiday: true },
+    29: { title: "روز جمهوری اسلامی (تکمیلی)", holiday: false },
   },
   12: {
     5: { title: "روز بزرگداشت خواجه نصیرالدین طوسی", holiday: false },
@@ -325,10 +331,9 @@ var INTL_OCCASIONS = {
 /**
  * LocalOccasionsRepository — builds an object shaped as
  * `{ [day]: { holiday, event: [{ title, holiday, tag }] } }` purely from
- * the local datasets above. This is now the ONLY data source
- * EventsService uses (previously named FallbackOccasionsRepository,
- * kept the same top-level output shape so nothing downstream needs to
- * change — only the shape of each item inside `event` gained a `tag`).
+ * the local datasets above. This is the ONLY data source EventsService
+ * uses. `tag` is set at the source (شمسی / قمری / میلادی) — never
+ * guessed from text.
  */
 class LocalOccasionsRepository {
   static getMonthData(jy, jm, daysInMonth) {
@@ -389,33 +394,35 @@ class LocalOccasionsRepository {
 }
 
 class EventsService {
+  /**
+   * Returns { solarEvents, gregorianEvents, hijriEvents, isHoliday }.
+   * All three event arrays are sourced exclusively from
+   * LocalOccasionsRepository (SOLAR_OCCASIONS / LUNAR_OCCASIONS /
+   * INTL_OCCASIONS), split by their `tag`. js/events.js / EventRepository
+   * is no longer consulted anywhere in this service.
+   */
   static async getEventsForDay(jalaliDate) {
     const local = {
-      solarEvents: EventRepository.getFixedJalaliEvents(
-        jalaliDate.month,
-        jalaliDate.day,
-      ),
+      solarEvents: [],
       gregorianEvents: [],
       hijriEvents: [],
       isHoliday: jalaliDate.weekDay === 5,
     };
-
-    const g = jalaliDate.toGregorian();
-    local.gregorianEvents = EventRepository.getFixedGregorianEvents(
-      g.getMonth() + 1,
-      g.getDate(),
-    );
 
     const dayData = LocalOccasionsRepository.getDayData(
       jalaliDate.year,
       jalaliDate.month,
       jalaliDate.day,
     );
+
     if (dayData) {
       local.isHoliday = local.isHoliday || !!dayData.holiday;
-      if (Array.isArray(dayData.event) && dayData.event.length) {
-        local.hijriEvents = dayData.event.map((e) => e.title);
-      }
+      dayData.event.forEach((e) => {
+        const item = { title: e.title, holiday: !!e.holiday };
+        if (e.tag === "شمسی") local.solarEvents.push(item);
+        else if (e.tag === "قمری") local.hijriEvents.push(item);
+        else if (e.tag === "میلادی") local.gregorianEvents.push(item);
+      });
     }
 
     return local;
@@ -447,25 +454,13 @@ class EventsService {
       const dateObj = new JalaliDate(jy, jm, d);
       const items = [];
 
-      EventRepository.getFixedJalaliEvents(jm, d).forEach((e) => {
-        items.push({ text: e.title, holiday: e.holiday, tag: "شمسی" });
-      });
-
-      const g = dateObj.toGregorian();
-      EventRepository.getFixedGregorianEvents(
-        g.getMonth() + 1,
-        g.getDate(),
-      ).forEach((e) => {
-        items.push({ text: e.title, holiday: e.holiday, tag: "میلادی" });
-      });
-
       const dayData = monthData[String(d)];
       if (dayData && Array.isArray(dayData.event)) {
         dayData.event.forEach((e) => {
           items.push({
             text: e.title,
             holiday: !!e.holiday,
-            tag: e.tag, // منشأ واقعی، بدون حدس‌زدن روی متن
+            tag: e.tag, // منشأ واقعی (شمسی/قمری/میلادی)، بدون حدس‌زدن روی متن
           });
         });
       }
