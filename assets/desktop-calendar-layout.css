@@ -1,0 +1,30 @@
+/* Desktop calendar layout: mobile layout remains unchanged. */
+@media (min-width: 1024px) {
+  #page-calendar {
+    display: grid;
+    grid-template-columns: minmax(320px, 440px) 1fr;
+    align-items: start;
+    column-gap: var(--space-2);
+    row-gap: 0;
+  }
+
+  #page-calendar > .card:first-child {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    margin-bottom: 0;
+  }
+
+  #page-calendar > .card.day-detail {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  #page-calendar > .card.month-events-card {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+    margin-top: -125px;
+    transform: translateY(-1px);
+  }
+}
