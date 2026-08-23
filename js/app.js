@@ -338,7 +338,7 @@ class CalendarController {
                     }">
                       <span class="badge"></span>
                       <span class="text">${item.text}</span>
-                      <span class="tag">${item.tag}</span>
+                      <span class="event-item__tag">${item.tag}</span>
                     </div>
                   `,
                 )

@@ -1,39 +1,15 @@
 /**
- * Events Service — Fetches lunar/day-specific Iranian occasions from a free
- * public API (pnldev.com Jalali Calendar API) and caches results in
- * localStorage for 30 days to avoid repeated network calls.
- * API: https://pnldev.com/fa/api-doc/calender
+ * Events Service — Fully offline. Provides lunar/day-specific Iranian
+ * occasions purely from the local datasets defined in this file
+ * (SOLAR_OCCASIONS / LUNAR_OCCASIONS / INTL_OCCASIONS). No network calls,
+ * no remote API, no localStorage caching — everything is computed
+ * on-demand from local data only.
  *
- * Fallback: if the remote API is unreachable or returns an error, this
- * service falls back to a fully local, offline occasions dataset
- * (SOLAR_OCCASIONS / LUNAR_OCCASIONS / INTL_OCCASIONS) so the app keeps
- * working (and keeps showing holidays/occasions) without a network
- * connection.
- *
- * FIX (2026): Previously, LUNAR_OCCASIONS (locally computed via the exact
- * Hijri tabular algorithm) was only consulted inside FallbackOccasionsRepository
- * — i.e. only when the remote API failed. Under normal (online) operation,
- * lunar occasion days came solely from the remote API's own Hijri mapping,
- * which can differ by 1 day from the locally-computed tabular Hijri date
- * (a known, common discrepancy between calendar sources). This caused
- * occasions such as "میلاد پیامبر اکرم (ص)" to appear on the wrong Jalali
- * day (e.g. 09/06/1405 instead of the correct 08/06/1405).
- *
- * Fix: EventsService now ALWAYS computes the locally-correct lunar occasion
- * for each day (via getLocalLunarEventsForDay) and merges it with whatever
- * the API/cache returned, instead of trusting the API's day placement for
- * these fixed lunar occasions. CACHE_PREFIX was also bumped to v2 to
- * invalidate any previously-cached (potentially wrong) 30-day entries.
- *
- * Design pattern: Decorator (caching over HTTP repository) + Cache-Aside
- * + Null Object / Fallback Repository for offline resilience.
+ * Design pattern: Repository Pattern (LocalOccasionsRepository is the
+ * single source of truth) + Facade (EventsService exposes the same
+ * shape the UI already expects).
  */
 "use strict";
-
-const CACHE_PREFIX = "shamsi_events_cache_v2_";
-const CACHE_TTL_DAYS = 30;
-const CACHE_TTL_MS = CACHE_TTL_DAYS * 24 * 60 * 60 * 1000;
-const API_BASE = "https://pnldev.com/api/calender";
 
 const GREGORIAN_MONTHS_EN = [
   "January",
@@ -76,7 +52,7 @@ function detectOccasionTag(text) {
 }
 
 /* ------------------------------------------------------------------ *
- * Local fallback dataset — used only when the remote API call fails.
+ * Local occasions dataset — the ONLY source of data for this service.
  * ------------------------------------------------------------------ */
 
 const SOLAR_OCCASIONS = {
@@ -293,33 +269,19 @@ var INTL_OCCASIONS = {
 };
 
 /**
- * Computes ONLY the locally-known lunar (Hijri) occasion(s) for a given
- * Jalali date, using the exact tabular Hijri algorithm (JalaliDate ->
- * Gregorian -> HijriDate) already used elsewhere in the app. This is
- * treated as the source of truth for the fixed lunar occasions listed in
- * LUNAR_OCCASIONS, regardless of whether that day's data came from the
- * remote API or the offline fallback.
+ * LocalOccasionsRepository — builds an object shaped as
+ * `{ [day]: { holiday, event: [titles] } }` purely from the local
+ * datasets above. This is now the ONLY data source EventsService uses
+ * (previously named FallbackOccasionsRepository, kept the same output
+ * shape so nothing downstream needs to change).
  */
-function getLocalLunarEventsForDay(jalaliDate) {
-  const gregorian = jalaliDate.toGregorian();
-  const hijri = HijriDate.fromGregorian(gregorian);
-  const monthMap = LUNAR_OCCASIONS[hijri.month];
-  const entry = monthMap && monthMap[hijri.day];
-  return entry ? [entry] : [];
-}
-
-/**
- * FallbackOccasionsRepository — builds an object shaped exactly like the
- * remote API's `result` payload (`{ [day]: { holiday, event: [titles] } }`)
- * purely from local data, so downstream code (EventsService) doesn't need
- * to know whether the data came from the network or from disk.
- */
-class FallbackOccasionsRepository {
+class LocalOccasionsRepository {
   static getMonthData(jy, jm, daysInMonth) {
     const data = {};
     for (let d = 1; d <= daysInMonth; d += 1) {
       const jalaliDate = new JalaliDate(jy, jm, d);
       const gregorian = jalaliDate.toGregorian();
+      const hijri = HijriDate.fromGregorian(gregorian);
 
       const events = [];
       let isHoliday = false;
@@ -330,10 +292,12 @@ class FallbackOccasionsRepository {
         if (solar.holiday) isHoliday = true;
       }
 
-      getLocalLunarEventsForDay(jalaliDate).forEach((lunar) => {
+      const lunar =
+        LUNAR_OCCASIONS[hijri.month] && LUNAR_OCCASIONS[hijri.month][hijri.day];
+      if (lunar) {
         events.push(lunar.title);
         if (lunar.holiday) isHoliday = true;
-      });
+      }
 
       const gm = gregorian.getMonth() + 1;
       const gd = gregorian.getDate();
@@ -348,82 +312,16 @@ class FallbackOccasionsRepository {
     }
     return data;
   }
-}
 
-class LocalCacheStore {
-  static read(key) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (Date.now() - parsed.savedAt > CACHE_TTL_MS) {
-        localStorage.removeItem(key);
-        return null;
-      }
-      return parsed.data;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  static write(key, data) {
-    try {
-      localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data }));
-    } catch (e) {
-      // storage unavailable; app still works without cache
-    }
-  }
-
-  static purgeExpired() {
-    const now = Date.now();
-    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-      const key = localStorage.key(i);
-      if (!key || !key.startsWith(CACHE_PREFIX)) continue;
-      try {
-        const parsed = JSON.parse(localStorage.getItem(key));
-        if (now - parsed.savedAt > CACHE_TTL_MS) localStorage.removeItem(key);
-      } catch (e) {
-        localStorage.removeItem(key);
-      }
-    }
-  }
-}
-
-class EventsApiRepository {
-  static async getMonthEvents(jy, jm) {
-    const cacheKey = `${CACHE_PREFIX}${jy}-${jm}`;
-    const cached = LocalCacheStore.read(cacheKey);
-    if (cached) return cached;
-
-    try {
-      const url = `${API_BASE}?year=${jy}&month=${jm}`;
-      const res = await fetch(url, { method: "GET" });
-      if (!res.ok) throw new Error(`network error: ${res.status}`);
-      const json = await res.json();
-      if (!json.status) throw new Error("api returned failure");
-      LocalCacheStore.write(cacheKey, json.result);
-      return json.result;
-    } catch (err) {
-      console.warn(
-        "EventsApiRepository: fetch failed, using local fallback occasions:",
-        err.message,
-      );
-      const daysInMonth = new JalaliDate(jy, jm, 1).daysInMonth();
-      const fallback = FallbackOccasionsRepository.getMonthData(
-        jy,
-        jm,
-        daysInMonth,
-      );
-      // Note: fallback data is not cached, so a fresh network attempt is
-      // made next time (in case connectivity is restored).
-      return fallback;
-    }
-  }
-
-  static async getDayEvents(jy, jm, jd) {
-    const monthData = await EventsApiRepository.getMonthEvents(jy, jm);
-    if (monthData && monthData[String(jd)]) return monthData[String(jd)];
-    return null;
+  static getDayData(jy, jm, jd) {
+    const jalaliDate = new JalaliDate(jy, jm, jd);
+    const daysInMonth = jalaliDate.daysInMonth();
+    const monthData = LocalOccasionsRepository.getMonthData(
+      jy,
+      jm,
+      daysInMonth,
+    );
+    return monthData[String(jd)] || null;
   }
 }
 
@@ -445,67 +343,49 @@ class EventsService {
       g.getDate(),
     );
 
-    // Source of truth for fixed lunar occasions (correct Hijri mapping),
-    // computed locally regardless of where the rest of the day's data
-    // comes from (API or offline fallback).
-    const localLunar = getLocalLunarEventsForDay(jalaliDate);
-    const titles = new Set();
-    localLunar.forEach((e) => {
-      titles.add(e.title);
-      if (e.holiday) local.isHoliday = true;
-    });
-
-    const apiDay = await EventsApiRepository.getDayEvents(
+    const dayData = LocalOccasionsRepository.getDayData(
       jalaliDate.year,
       jalaliDate.month,
       jalaliDate.day,
     );
-    if (apiDay) {
-      local.isHoliday = local.isHoliday || !!apiDay.holiday;
-      if (Array.isArray(apiDay.event) && apiDay.event.length) {
-        apiDay.event.forEach((title) => titles.add(title));
+    if (dayData) {
+      local.isHoliday = local.isHoliday || !!dayData.holiday;
+      if (Array.isArray(dayData.event) && dayData.event.length) {
+        local.hijriEvents = dayData.event;
       }
     }
 
-    local.hijriEvents = Array.from(titles);
     return local;
   }
 
   static async getMonthHolidayMap(jy, jm) {
-    const monthData = await EventsApiRepository.getMonthEvents(jy, jm);
-    const map = {};
-    if (monthData) {
-      Object.keys(monthData).forEach((day) => {
-        map[day] = !!monthData[day].holiday;
-      });
-    }
-
-    // Ensure fixed lunar occasion holidays are correctly flagged on the
-    // right Jalali day even if the API placed them on a different day.
     const daysInMonth = new JalaliDate(jy, jm, 1).daysInMonth();
-    for (let d = 1; d <= daysInMonth; d += 1) {
-      const dateObj = new JalaliDate(jy, jm, d);
-      const localLunar = getLocalLunarEventsForDay(dateObj);
-      if (localLunar.some((e) => e.holiday)) {
-        map[String(d)] = true;
-      }
-    }
-
+    const monthData = LocalOccasionsRepository.getMonthData(
+      jy,
+      jm,
+      daysInMonth,
+    );
+    const map = {};
+    Object.keys(monthData).forEach((day) => {
+      map[day] = !!monthData[day].holiday;
+    });
     return map;
   }
 
   static async getMonthEventsList(jy, jm, daysInMonth) {
-    const apiMonthData = await EventsApiRepository.getMonthEvents(jy, jm);
+    const monthData = LocalOccasionsRepository.getMonthData(
+      jy,
+      jm,
+      daysInMonth,
+    );
     const results = [];
 
     for (let d = 1; d <= daysInMonth; d += 1) {
       const dateObj = new JalaliDate(jy, jm, d);
       const items = [];
-      const seenTitles = new Set();
 
       EventRepository.getFixedJalaliEvents(jm, d).forEach((e) => {
         items.push({ text: e.title, holiday: e.holiday, tag: "" });
-        seenTitles.add(e.title);
       });
 
       const g = dateObj.toGregorian();
@@ -514,35 +394,23 @@ class EventsService {
         g.getDate(),
       ).forEach((e) => {
         items.push({ text: e.title, holiday: e.holiday, tag: "" });
-        seenTitles.add(e.title);
       });
 
-      // Correctly-placed fixed lunar occasions (source of truth for Hijri day)
-      getLocalLunarEventsForDay(dateObj).forEach((e) => {
-        if (!seenTitles.has(e.title)) {
-          items.push({ text: e.title, holiday: e.holiday, tag: "قمری" });
-          seenTitles.add(e.title);
-        }
-      });
-
-      const apiDay = apiMonthData && apiMonthData[String(d)];
-      if (apiDay && Array.isArray(apiDay.event)) {
-        apiDay.event.forEach((e) => {
-          if (!seenTitles.has(e)) {
-            items.push({
-              text: e,
-              holiday: !!apiDay.holiday,
-              tag: detectOccasionTag(e),
-            });
-            seenTitles.add(e);
-          }
+      const dayData = monthData[String(d)];
+      if (dayData && Array.isArray(dayData.event)) {
+        dayData.event.forEach((e) => {
+          items.push({
+            text: e,
+            holiday: !!dayData.holiday,
+            tag: detectOccasionTag(e),
+          });
         });
       }
 
       if (items.length) {
         const isHoliday =
           dateObj.weekDay === 5 ||
-          (apiDay && !!apiDay.holiday) ||
+          (dayData && !!dayData.holiday) ||
           items.some((it) => it.holiday);
         results.push({ day: d, isHoliday, items });
       }
@@ -552,9 +420,6 @@ class EventsService {
   }
 }
 
-LocalCacheStore.purgeExpired();
-
 window.EventsService = EventsService;
-window.LocalCacheStore = LocalCacheStore;
 window.detectOccasionTag = detectOccasionTag;
-window.FallbackOccasionsRepository = FallbackOccasionsRepository;
+window.LocalOccasionsRepository = LocalOccasionsRepository;
