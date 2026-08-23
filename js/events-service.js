@@ -8,6 +8,13 @@
  * Design pattern: Repository Pattern (LocalOccasionsRepository is the
  * single source of truth) + Facade (EventsService exposes the same
  * shape the UI already expects).
+ *
+ * NOTE (fix): Origin of each occasion (شمسی/قمری/میلادی) is now tagged
+ * at the source (where it is read from SOLAR_OCCASIONS / LUNAR_OCCASIONS /
+ * INTL_OCCASIONS), instead of being guessed from the text afterwards.
+ * The previous text-based guesser (detectOccasionTag) is kept only for
+ * backward compatibility with any external caller that still imports it,
+ * but it is no longer used internally.
  */
 "use strict";
 
@@ -41,6 +48,7 @@ const OCCASION_HIJRI_MONTHS = [
   "ذیحجه",
 ];
 
+/** @deprecated kept for backward compatibility only — no longer used internally */
 function detectOccasionTag(text) {
   if (GREGORIAN_MONTHS_EN.some((m) => text.includes(m))) return "میلادی";
   if (
@@ -170,37 +178,57 @@ const LUNAR_OCCASIONS = {
   },
 };
 
+/* ------------------------------------------------------------------ *
+ * INTL_OCCASIONS — Gregorian-date international observances, expanded
+ * with fixed-date UN / UNESCO / WHO international days that occur
+ * worldwide (movable dates like "first Monday of the month" were
+ * intentionally excluded to keep the dataset deterministic).
+ * ------------------------------------------------------------------ */
+
 var INTL_OCCASIONS = {
   1: {
     1: { title: "آغاز سال نو میلادی" },
+    4: { title: "روز جهانی خط بریل" },
     24: { title: "روز جهانی آموزش" },
     27: { title: "روز بین‌المللی یادبود هولوکاست" },
     28: { title: "روز جهانی حفظ حریم خصوصی اطلاعات" },
   },
   2: {
     2: { title: "روز جهانی تالاب‌ها" },
-    4: { title: "روز جهانی سرطان" },
+    4: { title: "روز جهانی سرطان و روز جهانی برادری انسانی" },
+    6: { title: "روز جهانی منع ختنه زنان" },
+    10: { title: "روز جهانی حبوبات" },
     11: { title: "روز جهانی زنان و دختران در علم" },
+    13: { title: "روز جهانی رادیو" },
     14: { title: "روز ولنتاین" },
     20: { title: "روز جهانی عدالت اجتماعی" },
     21: { title: "روز جهانی زبان مادری" },
   },
   3: {
+    1: { title: "روز جهانی رفع تبعیض" },
     3: { title: "روز جهانی حیات وحش" },
     8: { title: "روز جهانی زن" },
     14: { title: "روز عدد پی" },
-    20: { title: "روز جهانی شادی" },
-    21: { title: "روز جهانی جنگل‌ها و روز جهانی شعر" },
+    20: { title: "روز جهانی شادی و روز جهانی زبان فرانسه" },
+    21: {
+      title:
+        "روز جهانی جنگل‌ها، روز جهانی شعر و روز جهانی مبارزه با تبعیض نژادی",
+    },
     22: { title: "روز جهانی آب" },
+    23: { title: "روز جهانی هواشناسی" },
+    24: { title: "روز جهانی مبارزه با سل" },
+    25: { title: "روز جهانی یادبود قربانیان برده‌داری" },
     31: { title: "روز جهانی بک‌آپ‌گیری" },
   },
   4: {
     2: { title: "روز جهانی آگاهی از اوتیسم" },
+    4: { title: "روز جهانی آگاهی از خطر مین" },
     7: { title: "روز جهانی بهداشت" },
     18: { title: "روز جهانی بناها و محوطه‌های تاریخی" },
     22: { title: "روز جهانی زمین پاک" },
     23: { title: "روز جهانی کتاب و حق مؤلف" },
-    29: { title: "روز جهانی رقص" },
+    25: { title: "روز جهانی مبارزه با مالاریا" },
+    29: { title: "روز جهانی رقص و روز یادبود قربانیان زلزله" },
   },
   5: {
     1: { title: "روز جهانی کارگر" },
@@ -208,15 +236,24 @@ var INTL_OCCASIONS = {
     4: { title: "روز جنگ ستارگان" },
     12: { title: "روز جهانی پرستار" },
     15: { title: "روز جهانی خانواده" },
+    17: { title: "روز جهانی مخابرات و جامعه اطلاعاتی" },
+    21: { title: "روز جهانی تنوع فرهنگی برای گفتگو و توسعه" },
     22: { title: "روز بین‌المللی تنوع زیستی" },
+    29: { title: "روز جهانی نیروهای حافظ صلح سازمان ملل" },
     31: { title: "روز جهانی بدون دخانیات" },
   },
   6: {
     1: { title: "روز جهانی والدین" },
+    4: { title: "روز جهانی کودکان بی‌گناه قربانی تجاوز" },
     5: { title: "روز جهانی محیط زیست" },
     8: { title: "روز جهانی اقیانوس‌ها" },
     12: { title: "روز جهانی مبارزه با کار کودکان" },
+    17: { title: "روز جهانی مبارزه با بیابان‌زایی و خشکسالی" },
     20: { title: "روز جهانی پناهندگان" },
+    23: { title: "روز جهانی خدمات عمومی سازمان ملل" },
+    26: {
+      title: "روز جهانی مبارزه با سوءمصرف مواد مخدر و حمایت از قربانیان شکنجه",
+    },
   },
   7: {
     11: { title: "روز جهانی جمعیت" },
@@ -231,49 +268,67 @@ var INTL_OCCASIONS = {
     10: { title: "روز جهانی تنبلی" },
     12: { title: "روز جهانی جوانان" },
     13: { title: "روز جهانی چپ‌دست‌ها" },
-    19: { title: "روز جهانی عکاسی و انسان‌دوستی" },
+    19: { title: "روز جهانی عکاسی و روز جهانی بشردوستی" },
+    21: { title: "روز جهانی یادبود قربانیان تروریسم" },
+    23: { title: "روز جهانی یادبود تجارت برده و لغو آن" },
   },
   9: {
     5: { title: "روز جهانی خیریه" },
     8: { title: "روز جهانی سوادآموزی" },
+    9: { title: "روز جهانی حفاظت از آموزش در برابر حمله" },
     15: { title: "روز جهانی دموکراسی" },
+    16: { title: "روز جهانی حفاظت از لایه ازن" },
     21: { title: "روز جهانی صلح" },
     27: { title: "روز جهانی جهانگردی و گردشگری" },
   },
   10: {
     1: { title: "روز جهانی سالمندان و روز جهانی قهوه" },
+    2: { title: "روز جهانی عدم خشونت" },
     4: { title: "روز جهانی حیوانات" },
     5: { title: "روز جهانی معلم" },
+    6: { title: "روز جهانی مسکن" },
+    9: { title: "روز جهانی پست" },
     10: { title: "روز جهانی بهداشت روان" },
+    13: { title: "روز جهانی کاهش خطر بلایا" },
+    15: { title: "روز جهانی زنان روستایی" },
     16: { title: "روز جهانی غذا" },
+    17: { title: "روز جهانی ریشه‌کنی فقر" },
     24: { title: "روز ملل متحد" },
     29: { title: "روز جهانی اینترنت" },
   },
   11: {
+    6: { title: "روز جهانی پیشگیری از بهره‌برداری از محیط‌زیست در جنگ" },
     10: { title: "روز جهانی علم در خدمت صلح و توسعه" },
     14: { title: "روز جهانی دیابت" },
     16: { title: "روز بین‌المللی بردباری" },
     19: { title: "روز جهانی مردان" },
     20: { title: "روز جهانی کودک" },
+    21: { title: "روز جهانی تلویزیون" },
     25: { title: "روز جهانی مبارزه با خشونت علیه زنان" },
+    29: { title: "روز جهانی همبستگی با مردم فلسطین" },
   },
   12: {
     1: { title: "روز جهانی ایدز" },
+    2: { title: "روز جهانی لغو برده‌داری" },
     3: { title: "روز جهانی معلولان" },
-    5: { title: "روز جهانی خاک" },
+    5: { title: "روز جهانی خاک و روز جهانی داوطلب" },
+    7: { title: "روز جهانی هوانوردی کشوری" },
+    9: { title: "روز جهانی مبارزه با فساد" },
     10: { title: "روز حقوق بشر" },
     11: { title: "روز بین‌المللی کوهستان" },
     18: { title: "روز جهانی مهاجران" },
+    20: { title: "روز جهانی همبستگی انسانی" },
     28: { title: "روز جهانی سینما" },
   },
 };
 
 /**
  * LocalOccasionsRepository — builds an object shaped as
- * `{ [day]: { holiday, event: [titles] } }` purely from the local
- * datasets above. This is now the ONLY data source EventsService uses
- * (previously named FallbackOccasionsRepository, kept the same output
- * shape so nothing downstream needs to change).
+ * `{ [day]: { holiday, event: [{ title, holiday, tag }] } }` purely from
+ * the local datasets above. This is now the ONLY data source
+ * EventsService uses (previously named FallbackOccasionsRepository,
+ * kept the same top-level output shape so nothing downstream needs to
+ * change — only the shape of each item inside `event` gained a `tag`).
  */
 class LocalOccasionsRepository {
   static getMonthData(jy, jm, daysInMonth) {
@@ -283,19 +338,27 @@ class LocalOccasionsRepository {
       const gregorian = jalaliDate.toGregorian();
       const hijri = HijriDate.fromGregorian(gregorian);
 
-      const events = [];
+      const events = []; // { title, holiday, tag }
       let isHoliday = false;
 
       const solar = SOLAR_OCCASIONS[jm] && SOLAR_OCCASIONS[jm][d];
       if (solar) {
-        events.push(solar.title);
+        events.push({
+          title: solar.title,
+          holiday: !!solar.holiday,
+          tag: "شمسی",
+        });
         if (solar.holiday) isHoliday = true;
       }
 
       const lunar =
         LUNAR_OCCASIONS[hijri.month] && LUNAR_OCCASIONS[hijri.month][hijri.day];
       if (lunar) {
-        events.push(lunar.title);
+        events.push({
+          title: lunar.title,
+          holiday: !!lunar.holiday,
+          tag: "قمری",
+        });
         if (lunar.holiday) isHoliday = true;
       }
 
@@ -303,7 +366,7 @@ class LocalOccasionsRepository {
       const gd = gregorian.getDate();
       const intl = INTL_OCCASIONS[gm] && INTL_OCCASIONS[gm][gd];
       if (intl) {
-        events.push(intl.title);
+        events.push({ title: intl.title, holiday: false, tag: "میلادی" });
       }
 
       if (events.length) {
@@ -351,7 +414,7 @@ class EventsService {
     if (dayData) {
       local.isHoliday = local.isHoliday || !!dayData.holiday;
       if (Array.isArray(dayData.event) && dayData.event.length) {
-        local.hijriEvents = dayData.event;
+        local.hijriEvents = dayData.event.map((e) => e.title);
       }
     }
 
@@ -385,7 +448,7 @@ class EventsService {
       const items = [];
 
       EventRepository.getFixedJalaliEvents(jm, d).forEach((e) => {
-        items.push({ text: e.title, holiday: e.holiday, tag: "" });
+        items.push({ text: e.title, holiday: e.holiday, tag: "شمسی" });
       });
 
       const g = dateObj.toGregorian();
@@ -393,16 +456,16 @@ class EventsService {
         g.getMonth() + 1,
         g.getDate(),
       ).forEach((e) => {
-        items.push({ text: e.title, holiday: e.holiday, tag: "" });
+        items.push({ text: e.title, holiday: e.holiday, tag: "میلادی" });
       });
 
       const dayData = monthData[String(d)];
       if (dayData && Array.isArray(dayData.event)) {
         dayData.event.forEach((e) => {
           items.push({
-            text: e,
-            holiday: !!dayData.holiday,
-            tag: detectOccasionTag(e),
+            text: e.title,
+            holiday: !!e.holiday,
+            tag: e.tag, // منشأ واقعی، بدون حدس‌زدن روی متن
           });
         });
       }
