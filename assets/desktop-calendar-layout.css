@@ -1,35 +1,36 @@
-/* Desktop calendar layout. Mobile layout remains unchanged. */
+/* Desktop calendar layout (flex-based, stable with dynamic/accordion content).
+   Mobile layout remains unchanged.
+   Requires one small HTML change: wrap the day-detail card and the
+   month-events card together inside <div class="calendar-side-col">...</div>
+   See instructions provided alongside this file. */
 @media (min-width: 1024px) {
-  /* Hide inactive pages even though #page-calendar uses display:grid. */
   .page:not(.is-active) {
-    display: none;
+    display: none !important;
   }
 
   #page-calendar.is-active {
-    display: grid;
-    grid-template-columns: minmax(320px, 440px) 1fr;
-    align-items: start;
-    column-gap: var(--space-2);
-    row-gap: 0;
+    display: flex !important;
+    flex-direction: row-reverse !important; /* rtl: first child (calendar) ends up on the right */
+    align-items: flex-start !important;
+    gap: var(--space-2) !important;
   }
 
-  #page-calendar > .card:first-child {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    margin-bottom: 0;
+  #page-calendar.is-active > .card:first-child {
+    flex: 0 0 400px !important;
+    min-width: 320px !important;
+    max-width: 440px !important;
+    margin: 0 !important;
   }
 
-  #page-calendar > .card.day-detail {
-    grid-column: 2;
-    grid-row: 1;
-    margin: 0;
+  #page-calendar.is-active > .calendar-side-col {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--space-2) !important;
   }
 
-  #page-calendar > .card.month-events-card {
-    grid-column: 2;
-    grid-row: 2;
-    margin: 0;
-    margin-top: -100px;
-    transform: translateY(-1px);
+  #page-calendar.is-active > .calendar-side-col > .card {
+    margin: 0 !important;
   }
 }

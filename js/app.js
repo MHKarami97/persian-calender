@@ -46,9 +46,7 @@ class ToastService {
 
 class NavigationController {
   constructor() {
-    this.buttons = Array.from(
-      document.querySelectorAll(".bottom-nav__item"),
-    );
+    this.buttons = Array.from(document.querySelectorAll(".bottom-nav__item"));
 
     this.pages = Array.from(document.querySelectorAll(".page"));
 
@@ -128,17 +126,13 @@ class CalendarController {
       }
     });
 
-    document
-      .getElementById("prev-month-btn")
-      ?.addEventListener("click", () => {
-        this.shiftMonth(1);
-      });
+    document.getElementById("prev-month-btn")?.addEventListener("click", () => {
+      this.shiftMonth(1);
+    });
 
-    document
-      .getElementById("next-month-btn")
-      ?.addEventListener("click", () => {
-        this.shiftMonth(-1);
-      });
+    document.getElementById("next-month-btn")?.addEventListener("click", () => {
+      this.shiftMonth(-1);
+    });
 
     this.todayButton?.addEventListener("click", () => {
       this.goToToday();
@@ -201,8 +195,7 @@ class CalendarController {
     const { year, month } = this.viewDate;
 
     if (this.monthYearLabel) {
-      this.monthYearLabel.textContent =
-        `${PERSIAN_MONTH_NAMES[month - 1]} ${year}`;
+      this.monthYearLabel.textContent = `${PERSIAN_MONTH_NAMES[month - 1]} ${year}`;
     }
 
     const firstDay = new JalaliDate(year, month, 1);
@@ -414,10 +407,16 @@ class CalendarController {
       });
 
       data.hijriEvents.forEach((event) => {
+        const isString = typeof event === "string";
+        const title = isString ? event : (event && event.title) || "";
+        const holiday = isString ? false : Boolean(event && event.holiday);
+
+        if (!title) return; // skip malformed/empty entries defensively
+
         items.push({
-          text: event,
-          holiday: false,
-          tag: detectOccasionTag(event),
+          text: title,
+          holiday,
+          tag: detectOccasionTag(title),
         });
       });
 
@@ -521,17 +520,9 @@ class ConverterController {
         jalaliDate = JalaliDate.fromGregorian(gregorianDate);
         hijriDate = HijriDate.fromGregorian(gregorianDate);
       } else {
-        const gregorian = HijriAlgorithm.hijriToGregorian(
-          year,
-          month,
-          day,
-        );
+        const gregorian = HijriAlgorithm.hijriToGregorian(year, month, day);
 
-        gregorianDate = new Date(
-          gregorian.gy,
-          gregorian.gm - 1,
-          gregorian.gd,
-        );
+        gregorianDate = new Date(gregorian.gy, gregorian.gm - 1, gregorian.gd);
 
         jalaliDate = JalaliDate.fromGregorian(gregorianDate);
         hijriDate = new HijriDate(year, month, day);
@@ -569,11 +560,9 @@ class ConverterController {
 
 class AgeController {
   constructor() {
-    document
-      .getElementById("age-submit-btn")
-      ?.addEventListener("click", () => {
-        this.calculate();
-      });
+    document.getElementById("age-submit-btn")?.addEventListener("click", () => {
+      this.calculate();
+    });
   }
 
   calculate() {
@@ -675,9 +664,7 @@ class PrayerTimesController {
           name: "موقعیت فعلی شما",
         };
 
-        const locationLabel = document.getElementById(
-          "prayer-location-label",
-        );
+        const locationLabel = document.getElementById("prayer-location-label");
 
         if (locationLabel) {
           locationLabel.textContent = `مکان: ${this.location.name}`;
@@ -735,11 +722,9 @@ class PrayerTimesController {
 /* -------------------------------------------------------------------------- */
 
 function initThemeToggle() {
-  document
-    .getElementById("theme-toggle-btn")
-    ?.addEventListener("click", () => {
-      window.themeManagerInstance.toggle();
-    });
+  document.getElementById("theme-toggle-btn")?.addEventListener("click", () => {
+    window.themeManagerInstance.toggle();
+  });
 }
 
 /* -------------------------------------------------------------------------- */
@@ -749,9 +734,7 @@ function initThemeToggle() {
 let deferredPrompt = null;
 
 function initializeInstallPrompt() {
-  const installPromptDismissed = localStorage.getItem(
-    "installPromptDismissed",
-  );
+  const installPromptDismissed = localStorage.getItem("installPromptDismissed");
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -877,17 +860,13 @@ class ServiceWorkerUpdateManager {
       console.log("New Service Worker found");
 
       installingWorker.addEventListener("statechange", () => {
-        console.log(
-          "Service Worker state changed:",
-          installingWorker.state,
-        );
+        console.log("Service Worker state changed:", installingWorker.state);
 
         if (
           installingWorker.state === "installed" &&
           navigator.serviceWorker.controller
         ) {
-          this.waitingWorker =
-            this.registration.waiting || installingWorker;
+          this.waitingWorker = this.registration.waiting || installingWorker;
 
           this.showUpdateNotification();
         }
