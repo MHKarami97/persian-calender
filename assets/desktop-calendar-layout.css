@@ -1,6 +1,11 @@
-/* Desktop calendar layout: mobile layout remains unchanged. */
+/* Desktop calendar layout. Mobile layout remains unchanged. */
 @media (min-width: 1024px) {
-  #page-calendar {
+  /* Hide inactive pages even though #page-calendar uses display:grid. */
+  .page:not(.is-active) {
+    display: none;
+  }
+
+  #page-calendar.is-active {
     display: grid;
     grid-template-columns: minmax(320px, 440px) 1fr;
     align-items: start;
@@ -24,7 +29,7 @@
     grid-column: 2;
     grid-row: 2;
     margin: 0;
-    margin-top: -125px;
+    margin-top: -100px;
     transform: translateY(-1px);
   }
 }
