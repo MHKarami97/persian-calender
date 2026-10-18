@@ -1,26 +1,3 @@
-/**
- * Events Service — Fully offline. Provides lunar/day-specific Iranian
- * occasions purely from the local datasets defined in this file
- * (SOLAR_OCCASIONS / LUNAR_OCCASIONS / INTL_OCCASIONS). No network calls,
- * no remote API, no localStorage caching, and — as of this revision —
- * NO dependency on js/events.js (EventRepository) either. Everything is
- * computed on-demand from the local data in THIS file only.
- *
- * Design pattern: Repository Pattern (LocalOccasionsRepository is the
- * single source of truth) + Facade (EventsService exposes the same
- * shape the UI already expects).
- *
- * FIX (duplication bug): previously this service ALSO called
- * `EventRepository.getFixedJalaliEvents` / `getFixedGregorianEvents`
- * (from js/events.js) in addition to LocalOccasionsRepository. Since
- * every date in js/events.js (Nowruz, 22 Bahman, 8 March, Nowruz UN day,
- * Health day, Earth day, Labor day, Environment day, Peace day, Elderly
- * day, Food day, Human Rights day, etc.) is already present — and more
- * completely — inside SOLAR_OCCASIONS / INTL_OCCASIONS below, every one
- * of those occasions was rendered TWICE. js/events.js is now redundant:
- * delete the file and remove its <script src="js/events.js"> tag from
- * index.html.
- */
 "use strict";
 
 const GREGORIAN_MONTHS_EN = [
@@ -65,416 +42,546 @@ function detectOccasionTag(text) {
 }
 
 /* ------------------------------------------------------------------ *
- * Local occasions dataset — the ONLY source of data for this service.
+ * Datasets: month -> day -> [titles]. Holidays are kept in separate
+ * Sets ("month-day") so the tables stay compact and readable.
+ * Only fixed-date occasions live here; moving ones are computed rules.
  * ------------------------------------------------------------------ */
 
 const SOLAR_OCCASIONS = {
   1: {
-    1: { title: "جشن نوروز / آغاز سال نو", holiday: true },
-    2: { title: "عید نوروز", holiday: true },
-    3: { title: "عید نوروز", holiday: true },
-    4: { title: "عید نوروز", holiday: true },
-    12: { title: "روز جمهوری اسلامی ایران", holiday: true },
-    13: { title: "روز طبیعت (سیزده‌به‌در)", holiday: true },
-    25: { title: "روز بزرگداشت عطار نیشابوری", holiday: false },
+    1: ["جشن نوروز", "جشن سال نو"],
+    2: ["عید نوروز"],
+    3: ["عید نوروز"],
+    4: ["عید نوروز"],
+    6: ["روز امید", "روز شادباش‌نویسی", "زادروز زرتشت"],
+    10: ["جشن آبانگاه"],
+    12: ["روز جمهوری اسلامی"],
+    13: ["جشن سیزده‌به‌در", "روز طبیعت"],
+    15: ["روز ذخایر ژنتیکی و زیستی"],
+    17: ["سروش روز", "جشن سروشگان"],
+    19: ["فروردین روز", "جشن فروردینگان"],
+    20: ["روز ملی فناوری هسته‌ای"],
+    23: ["روز دندان‌پزشک"],
+    25: ["روز بزرگداشت عطار نیشابوری", "روز ملی منابع انسانی"],
+    29: ["روز ارتش جمهوری اسلامی ایران"],
+    30: ["روز علوم آزمایشگاهی", "زادروز حکیم سید اسماعیل جرجانی"],
   },
   2: {
-    1: { title: "روز بزرگداشت سعدی", holiday: false },
-    3: { title: "روز بزرگداشت شیخ بهایی", holiday: false },
-    10: { title: "روز ملی خلیج فارس", holiday: false },
-    12: { title: "روز معلم", holiday: false },
-    25: { title: "روز بزرگداشت فردوسی", holiday: false },
-    28: { title: "روز بزرگداشت خیام نیشابوری", holiday: false },
+    1: ["روز بزرگداشت سعدی"],
+    2: ["جشن گیاه‌آوری"],
+    3: ["روز بزرگداشت شیخ بهایی", "روز ملی کارآفرینی", "روز معمار"],
+    7: ["روز ایمنی حمل و نقل"],
+    9: ["روز شوراها"],
+    10: ["جشن چهلم نوروز", "روز ملی خلیج فارس"],
+    12: ["کشته شدن مرتضی مطهری", "روز معلم"],
+    15: ["جشن میانه بهار", "جشن بهاربد", "روز شیراز"],
+    18: ["روز بیماری‌های خاص و صعب‌العلاج"],
+    19: ["روز اسناد ملی و میراث مکتوب", "روز بزرگداشت شیخ کلینی"],
+    25: ["روز بزرگداشت فردوسی"],
+    27: ["روز ارتباطات و روابط عمومی"],
+    28: ["روز بزرگداشت حکیم عمر خیام"],
+    30: ["روز ملی جمعیت"],
+    31: ["روز اهدای عضو، اهدای زندگی"],
   },
   3: {
-    1: { title: "روز بزرگداشت ملاصدرا", holiday: false },
-    14: { title: "رحلت امام خمینی (ره)", holiday: true },
-    15: { title: "قیام ۱۵ خرداد", holiday: true },
-    29: { title: "درگذشت دکتر علی شریعتی", holiday: false },
+    1: ["روز بهره‌وری و بهینه‌سازی مصرف", "روز بزرگداشت ملاصدرا"],
+    3: ["فتح خرمشهر در عملیات بیت‌المقدس", "روز مقاومت، ایثار و پیروزی"],
+    4: ["روز دزفول", "روز مقاومت و پایداری"],
+    6: ["جشن خردادگان"],
+    8: ["روز مشاوران املاک", "روز فرهنگ پهلوانی و ورزش زورخانه‌ای"],
+    14: ["رحلت امام خمینی (ره)"],
+    15: ["قیام ۱۵ خرداد"],
+    22: ["روز دختران"],
+    25: ["روز ملی گل و گیاه"],
+    27: ["روز جهاد کشاورزی"],
+    29: ["درگذشت دکتر علی شریعتی"],
   },
   4: {
-    1: { title: "جشن آب‌پاشونک / روز اصناف", holiday: false },
-    5: { title: "روز جهانی مبارزه با مواد مخدر", holiday: false },
-    7: { title: "روز قوه قضاییه", holiday: false },
-    8: { title: "روز مبارزه با سلاح‌های شیمیایی", holiday: false },
-    10: { title: "روز صنعت و معدن", holiday: false },
-    13: { title: "جشن تیرگان", holiday: false },
-    14: { title: "روز قلم", holiday: false },
-    22: { title: "روز ملی فناوری اطلاعات", holiday: false },
-    25: { title: "روز بهزیستی و تامین اجتماعی", holiday: false },
+    1: ["جشن آب‌پاشونک", "جشن آغاز تابستان", "روز اصناف"],
+    7: [
+      "انفجار دفتر حزب جمهوری اسلامی و شهادت دکتر بهشتی و ۷۲ تن از یارانش",
+      "روز قوه قضاییه",
+    ],
+    8: ["روز مبارزه با سلاح‌های شیمیایی و میکروبی"],
+    10: ["روز صنعت و معدن"],
+    13: ["تیر روز", "جشن تیرگان"],
+    14: ["روز قلم"],
+    15: ["جشن خام‌خواری"],
+    22: ["بزرگداشت خوارزمی"],
+    25: ["روز بهزیستی و تأمین اجتماعی"],
+    27: ["اعلام پذیرش قطعنامه ۵۹۸ شورای امنیت از سوی ایران"],
   },
   5: {
-    7: { title: "جشن مردادگان", holiday: false },
-    10: { title: "جشن چله تابستان", holiday: false },
-    14: { title: "روز ملی خط و زبان فارسی", holiday: false },
+    6: ["روز ترویج آموزش‌های فنی و حرفه‌ای"],
+    7: ["مرداد روز", "جشن مردادگان"],
+    8: ["روز بزرگداشت شیخ شهاب‌الدین سهروردی"],
+    10: ["جشن چله تابستان"],
+    14: ["صدور فرمان مشروطیت"],
+    17: ["روز خبرنگار"],
+    26: ["سالروز ورود اسیران جنگ به ایران"],
+    28: ["سالروز کودتای ۲۸ مرداد", "سالروز فاجعه آتش‌زدن سینما رکس آبادان"],
   },
   6: {
-    1: { title: "روز پزشک", holiday: false },
-    4: { title: "جشن شهریورگان", holiday: false },
-    13: { title: "روز بزرگداشت ابوریحان بیرونی", holiday: false },
-    27: { title: "روز شعر و ادب پارسی (شهریار)", holiday: false },
+    1: ["روز بزرگداشت ابوعلی سینا", "روز پزشک"],
+    2: ["آغاز هفته دولت"],
+    4: ["زادروز داراب", "شهریور روز", "جشن شهریورگان", "روز کارمند"],
+    5: ["روز بزرگداشت محمد بن زکریای رازی", "روز داروساز"],
+    8: ["انفجار در دفتر نخست‌وزیری", "روز مبارزه با تروریسم"],
+    11: ["روز صنعت چاپ"],
+    13: ["روز بزرگداشت ابوریحان بیرونی", "روز تعاون"],
+    17: ["واقعه ۱۷ شهریور"],
+    19: ["درگذشت سید محمود طالقانی"],
+    21: ["روز سینما"],
+    27: ["روز شعر و ادب پارسی", "روز بزرگداشت شهریار"],
+    30: ["روز گفتگوی تمدن‌ها"],
+    31: ["آغاز هفته دفاع مقدس"],
   },
   7: {
-    13: { title: "روز جهانی کودک", holiday: false },
-    26: { title: "روز دانش‌آموز", holiday: false },
+    1: ["آغاز حمله مغول به ایران در پاییز ۵۹۸ خورشیدی"],
+    7: [
+      "روز آتش‌نشانی و ایمنی",
+      "سقوط هواپیمای حامل جمعی از فرماندهان جنگ در سال ۱۳۶۰",
+    ],
+    8: ["روز بزرگداشت مولوی"],
+    13: ["روز نیروی انتظامی"],
+    14: ["روز دامپزشکی"],
+    16: ["مهر روز", "جشن مهرگان", "روز ملی کودک"],
+    20: ["روز بزرگداشت حافظ"],
+    21: ["جشن پیروزی کاوه و فریدون"],
+    26: ["روز تربیت بدنی و ورزش"],
   },
   8: {
-    13: { title: "روز نیروی هوایی", holiday: false },
+    1: ["روز آمار و برنامه‌ریزی"],
+    7: ["سالروز ورود کوروش بزرگ به بابل در سال ۵۳۹ پیش از میلاد"],
+    8: ["روز نوجوان"],
+    10: ["آبان روز", "جشن آبانگان"],
+    13: ["روز دانش‌آموز"],
+    14: ["روز فرهنگ عمومی"],
+    15: ["جشن میانه پاییز"],
+    18: ["روز ملی کیفیت"],
+    24: ["روز کتاب و کتابخوانی"],
   },
   9: {
-    5: { title: "روز بیمه", holiday: false },
-    20: { title: "شب یلدا", holiday: false },
+    1: ["روز اصفهان", "آذر جشن"],
+    5: ["روز بسیج مستضعفان"],
+    7: ["روز نیروی دریایی"],
+    9: ["جشن آذرگان", "آذر روز"],
+    10: ["روز مجلس"],
+    13: ["روز بیمه"],
+    15: ["روز حسابدار"],
+    16: ["روز دانشجو"],
+    25: ["روز پژوهش"],
+    26: ["روز حمل و نقل"],
+    30: ["جشن شب یلدا"],
   },
   10: {
-    1: { title: "جشن خرم‌روز", holiday: false },
-    20: { title: "درگذشت امیرکبیر", holiday: false },
+    1: ["روز میلاد خورشید", "جشن خرم‌روز", "نخستین جشن دیگان"],
+    3: ["روز ثبت احوال"],
+    5: ["سالروز زمین‌لرزه بم در سال ۱۳۸۲", "سالروز درگذشت زرتشت"],
+    8: ["دی به آذر روز", "دومین جشن دیگان"],
+    14: ["روز مادر و زن"],
+    15: ["دی به مهر روز", "سومین جشن دیگان"],
+    20: ["سالروز قتل امیرکبیر به دستور ناصرالدین شاه قاجار"],
+    23: ["دی به دین روز", "چهارمین جشن دیگان"],
+    29: ["روز ملی هوای پاک"],
   },
   11: {
-    22: { title: "پیروزی انقلاب اسلامی", holiday: true },
-    29: { title: "روز جمهوری اسلامی (تکمیلی)", holiday: false },
+    1: ["زادروز فردوسی"],
+    2: ["بهمن روز", "جشن بهمنگان"],
+    5: ["جشن نوسره", "روز پدر و مرد"],
+    10: ["جشن سده"],
+    12: ["بازگشت امام خمینی (ره) به ایران"],
+    15: ["جشن میانه زمستان"],
+    19: ["روز نیروی هوایی"],
+    22: ["پیروزی انقلاب اسلامی"],
+    29: ["جشن سپندارمذگان", "روز عشق"],
   },
   12: {
-    5: { title: "روز بزرگداشت خواجه نصیرالدین طوسی", holiday: false },
-    15: { title: "جشن اسفندگان", holiday: false },
-    29: { title: "روز ملی شدن صنعت نفت ایران", holiday: true },
+    5: [
+      "روز بزرگداشت خواجه نصیرالدین طوسی",
+      "روز مهندس",
+      "روز بزرگداشت زمین و بانوان",
+    ],
+    7: [
+      "سالروز استقلال کانون وکلای دادگستری",
+      "روز وکیل مدافع",
+      "سالروز درگذشت علی‌اکبر دهخدا",
+    ],
+    15: ["روز درختکاری"],
+    25: ["پایان سرایش شاهنامه"],
+    29: ["روز ملی شدن صنعت نفت ایران"],
   },
 };
 
+const SOLAR_HOLIDAYS = new Set([
+  "1-1",
+  "1-2",
+  "1-3",
+  "1-4",
+  "1-12",
+  "1-13",
+  "3-14",
+  "3-15",
+  "11-22",
+  "12-29",
+]);
+
 const LUNAR_OCCASIONS = {
   1: {
-    1: { title: "آغاز سال قمری جدید", holiday: false },
-    8: { title: "تاسوعای حسینی", holiday: true },
-    9: { title: "عاشورای حسینی", holiday: true },
-    11: { title: "شهادت امام زین‌العابدین (ع)", holiday: false },
+    1: ["آغاز سال قمری جدید"],
+    9: ["تاسوعای حسینی"],
+    10: ["عاشورای حسینی"],
+    25: ["شهادت امام زین‌العابدین (ع)"],
   },
   2: {
-    19: { title: "اربعین حسینی", holiday: true },
-    27: {
-      title: "رحلت پیامبر اکرم (ص) و شهادت امام حسن مجتبی (ع)",
-      holiday: true,
-    },
-    28: { title: "شهادت امام رضا (ع)", holiday: true },
+    20: ["اربعین حسینی"],
+    28: ["رحلت پیامبر اکرم (ص)", "شهادت امام حسن مجتبی (ع)"],
   },
   3: {
-    7: { title: "شهادت امام حسن عسکری (ع)", holiday: true },
-    16: { title: "میلاد پیامبر اکرم (ص) و امام جعفر صادق (ع)", holiday: true },
+    8: ["شهادت امام حسن عسکری (ع)"],
+    17: ["میلاد پیامبر اکرم (ص)", "میلاد امام جعفر صادق (ع)"],
   },
   6: {
-    2: { title: "شهادت حضرت فاطمه زهرا (س)", holiday: true },
+    3: ["شهادت حضرت فاطمه زهرا (س)"],
   },
   7: {
-    13: { title: "ولادت امام علی (ع) و روز پدر", holiday: true },
-    27: { title: "مبعث پیامبر اکرم (ص)", holiday: true },
+    3: ["شهادت امام هادی (ع)"],
+    13: ["ولادت امام علی (ع)", "روز پدر"],
+    25: ["شهادت امام موسی کاظم (ع)"],
+    27: ["مبعث پیامبر اکرم (ص)"],
   },
   8: {
-    15: { title: "ولادت امام زمان (عج) / جشن نیمه شعبان", holiday: true },
+    3: ["ولادت امام حسین (ع)"],
+    15: ["ولادت امام زمان (عج)", "جشن نیمه شعبان"],
   },
   9: {
-    21: { title: "شهادت امام علی (ع)", holiday: true },
+    21: ["شهادت امام علی (ع)"],
   },
   10: {
-    1: { title: "عید سعید فطر", holiday: true },
-    2: { title: "تعطیل به مناسبت عید فطر", holiday: true },
-    25: { title: "شهادت امام جعفر صادق (ع)", holiday: false },
+    1: ["عید سعید فطر"],
+    2: ["تعطیل به مناسبت عید فطر"],
+    25: ["شهادت امام جعفر صادق (ع)"],
+  },
+  11: {
+    11: ["ولادت امام رضا (ع)"],
+    29: ["شهادت امام جواد (ع)"],
   },
   12: {
-    9: { title: "روز عرفه", holiday: false },
-    10: { title: "عید سعید قربان", holiday: true },
-    18: { title: "عید سعید غدیر خم", holiday: true },
+    7: ["شهادت امام محمد باقر (ع)"],
+    9: ["روز عرفه"],
+    10: ["عید سعید قربان"],
+    15: ["ولادت امام هادی (ع)"],
+    18: ["عید سعید غدیر خم"],
+  },
+};
+
+const LUNAR_HOLIDAYS = new Set([
+  "1-9",
+  "1-10",
+  "2-20",
+  "2-28",
+  "3-17",
+  "6-3",
+  "7-13",
+  "7-25",
+  "7-27",
+  "8-15",
+  "9-21",
+  "10-1",
+  "10-2",
+  "10-25",
+  "12-10",
+  "12-18",
+]);
+
+/** Occasions pinned to the LAST day of a hijri month (month length is 29 or 30). */
+const LUNAR_LAST_DAY_OCCASIONS = {
+  2: { titles: ["شهادت امام رضا (ع)"], holiday: true },
+};
+
+/** Gregorian-date observances: month -> day -> [titles]. Fixed dates only. */
+const INTL_OCCASIONS = {
+  1: {
+    1: ["آغاز سال نو میلادی"],
+    4: ["روز جهانی خط بریل"],
+    11: ["درگذشت کارل دیوید اندرسون، برنده نوبل فیزیک ۱۹۳۶", "روز جهانی خنده"],
+    14: ["روز جهانی جوک"],
+    27: ["روز جهانی کمک به جذامیان"],
+  },
+  2: {
+    1: ["روز جهانی حجاب"],
+    2: ["روز جهانی تالاب‌ها"],
+    4: ["روز جهانی سرطان"],
+    6: ["روز جهانی مقابله با ناقص‌سازی زنان"],
+    11: ["حمله به سفارت روسیه و قتل گریبایدوف"],
+    12: ["زادروز چارلز داروین"],
+    14: ["روز ولنتاین"],
+    18: ["سالروز درگذشت میکل‌آنژ", "روز جهانی مجسمه‌سازی"],
+    20: ["روز جهانی عدالت اجتماعی"],
+    21: ["روز جهانی زبان مادری"],
+    22: ["روز جهانی راهنمایان گردشگری"],
+  },
+  3: {
+    1: ["روز جهانی اختراعات و اکتشافات"],
+    6: ["روز جهانی گلوکوم"],
+    8: ["روز جهانی زن"],
+    12: ["روز جهانی کلیه"],
+    21: [
+      "روز جهانی جنگل",
+      "روز جهانی رفع تبعیض نژادی",
+      "روز جهانی شعر",
+      "روز جهانی سندرم داون",
+    ],
+    22: ["روز جهانی آب"],
+    23: ["روز جهانی هواشناسی"],
+    24: ["روز جهانی مبارزه با سل"],
+    27: ["روز جهانی تئاتر"],
+  },
+  4: {
+    2: ["روز جهانی کتاب کودک"],
+    7: ["روز جهانی بهداشت", "روز جهانی کاریکاتور و کاریکاتوریست‌ها"],
+    17: ["روز جهانی هموفیلی"],
+    22: ["روز جهانی زمین پاک"],
+    23: ["روز جهانی کتاب و حق مولف"],
+    25: ["روز جهانی مالاریا"],
+    27: ["روز جهانی گرافیک"],
+    28: ["روز جهانی بهداشت حرفه‌ای"],
+    29: ["روز جهانی رقص", "روز جهانی روان‌شناس و مشاور"],
+  },
+  5: {
+    1: ["روز جهانی کارگر"],
+    3: ["روز جهانی آزادی مطبوعات"],
+    5: ["روز جهانی ماما", "روز جهانی آسم"],
+    7: ["روز جهانی یتیمان مبتلا به ویروس ایدز"],
+    8: ["روز جهانی صلیب سرخ و هلال احمر", "روز جهانی تالاسمی"],
+    15: ["روز جهانی خانواده"],
+    17: ["روز جهانی ارتباطات"],
+    18: ["روز جهانی موزه و میراث فرهنگی"],
+    21: ["روز جهانی توسعه فرهنگی"],
+    22: ["روز جهانی تنوع زیستی", "روز جهانی مو فرفری‌ها"],
+    27: ["روز جهانی ام‌اس"],
+    29: ["روز جهانی حافظان صلح ملل متحد"],
+    31: ["روز جهانی بدون دخانیات"],
+  },
+  6: {
+    5: ["روز جهانی محیط زیست"],
+    8: ["روز جهانی اقیانوس‌ها"],
+    10: ["روز جهانی صنایع دستی"],
+    12: ["روز جهانی مبارزه با کار کودکان"],
+    14: ["روز جهانی اهدای خون"],
+    15: ["روز جهانی گل"],
+    17: ["روز جهانی بیابان‌زدایی"],
+    20: ["روز جهانی پناهندگان"],
+    26: ["روز جهانی مبارزه با مواد مخدر", "روز جهانی قربانیان خشونت"],
+  },
+  7: {
+    11: ["روز جهانی جمعیت"],
+    23: ["روز جهانی لغو برده‌داری"],
+  },
+  8: {
+    1: ["آغاز هفته جهانی شیردهی", "روز جهانی دوست دختر"],
+    9: ["روز جهانی مردم بومی"],
+    12: ["روز جهانی جوانان"],
+    13: ["روز جهانی چپ‌دستان"],
+    19: ["روز جهانی انسان‌دوستی", "روز جهانی عکاسی"],
+  },
+  9: {
+    8: ["روز جهانی سوادآموزی"],
+    10: ["روز جهانی پیشگیری از خودکشی"],
+    11: ["حمله به برج‌های دوقلوی مرکز تجارت جهانی"],
+    16: ["روز جهانی حفظ لایه ازن"],
+    21: ["روز جهانی صلح", "روز جهانی آلزایمر"],
+    27: ["روز جهانی جهانگردی"],
+    30: [
+      "روز جهانی دریانوردی",
+      "روز جهانی ناشنوایان",
+      "روز جهانی ترجمه و مترجم",
+    ],
+  },
+  10: {
+    1: ["روز جهانی سالمندان"],
+    2: ["روز جهانی اقدامات همدلانه", "روز جهانی بدون خشونت"],
+    5: ["روز جهانی معلم"],
+    8: ["روز جهانی کودک"],
+    9: ["روز جهانی پست"],
+    10: ["روز جهانی بهداشت روان", "روز جهانی مبارزه با حکم اعدام"],
+    11: ["روز جهانی دختر"],
+    12: ["روز اسکان معلولان و سالمندان"],
+    14: ["روز جهانی استاندارد"],
+    15: ["روز جهانی نابینایان (عصای سفید)"],
+    16: ["روز جهانی غذا"],
+    17: ["روز جهانی ریشه‌کنی فقر"],
+    20: ["روز جهانی پوکی استخوان"],
+    24: ["روز ملل متحد", "روز جهانی توسعه اطلاعات"],
+    27: ["روز جهانی میراث سمعی و بصری"],
+    29: ["روز جهانی پسوریازیس"],
+  },
+  11: {
+    6: [
+      "روز جهانی پیشگیری از سوءاستفاده از محیط زیست در جنگ و مناقشات مسلحانه",
+    ],
+    10: ["روز جهانی علم در خدمت صلح و توسعه"],
+    14: ["روز جهانی دیابت"],
+    15: ["روز نان و پنیر"],
+    16: ["روز جهانی بردباری"],
+    17: ["روز جهانی دانشجو"],
+    20: ["روز جهانی کودک", "روز صنعتی‌سازی آفریقا"],
+    21: ["روز جهانی تلویزیون"],
+    25: ["روز جهانی مبارزه با خشونت علیه زنان"],
+    29: ["روز جهانی همبستگی با مردم فلسطین"],
+  },
+  12: {
+    1: ["روز جهانی مبارزه با ایدز"],
+    2: ["روز جهانی لغو برده‌داری"],
+    3: ["روز جهانی معلولان"],
+    5: ["روز جهانی داوطلبان برای توسعه اقتصادی و اجتماعی"],
+    7: ["روز جهانی هوانوردی غیرنظامی"],
+    10: ["روز جهانی حقوق بشر", "روز جهانی مبارزه با فساد"],
+    11: ["روز جهانی کوهستان"],
+    12: ["روز جهانی حمایت از بیماران کلیوی"],
+    18: ["روز بین‌المللی مهاجران"],
+    20: ["روز بین‌المللی همبستگی بشر"],
+    25: ["جشن کریسمس"],
+    29: ["روز بین‌المللی تنوع زیستی"],
   },
 };
 
 /* ------------------------------------------------------------------ *
- * INTL_OCCASIONS — Gregorian-date international observances, expanded
- * with fixed-date UN / UNESCO / WHO international days that occur
- * worldwide (movable dates like "first Monday of the month" were
- * intentionally excluded to keep the dataset deterministic).
+ * Computed rules (dates that move relative to the fixed tables)
  * ------------------------------------------------------------------ */
 
-var INTL_OCCASIONS = {
-  1: {
-    1: { title: "آغاز سال نو میلادی" },
-    4: { title: "روز جهانی خط بریل" },
-    24: { title: "روز جهانی آموزش" },
-    27: { title: "روز بین‌المللی یادبود هولوکاست" },
-    28: { title: "روز جهانی حفظ حریم خصوصی اطلاعات" },
-  },
-  2: {
-    2: { title: "روز جهانی تالاب‌ها" },
-    4: { title: "روز جهانی سرطان و روز جهانی برادری انسانی" },
-    6: { title: "روز جهانی منع ختنه زنان" },
-    10: { title: "روز جهانی حبوبات" },
-    11: { title: "روز جهانی زنان و دختران در علم" },
-    13: { title: "روز جهانی رادیو" },
-    14: { title: "روز ولنتاین" },
-    20: { title: "روز جهانی عدالت اجتماعی" },
-    21: { title: "روز جهانی زبان مادری" },
-  },
-  3: {
-    1: { title: "روز جهانی رفع تبعیض" },
-    3: { title: "روز جهانی حیات وحش" },
-    8: { title: "روز جهانی زن" },
-    14: { title: "روز عدد پی" },
-    20: { title: "روز جهانی شادی و روز جهانی زبان فرانسه" },
-    21: {
-      title:
-        "روز جهانی جنگل‌ها، روز جهانی شعر و روز جهانی مبارزه با تبعیض نژادی",
-    },
-    22: { title: "روز جهانی آب" },
-    23: { title: "روز جهانی هواشناسی" },
-    24: { title: "روز جهانی مبارزه با سل" },
-    25: { title: "روز جهانی یادبود قربانیان برده‌داری" },
-    31: { title: "روز جهانی بک‌آپ‌گیری" },
-  },
-  4: {
-    2: { title: "روز جهانی آگاهی از اوتیسم" },
-    4: { title: "روز جهانی آگاهی از خطر مین" },
-    7: { title: "روز جهانی بهداشت" },
-    18: { title: "روز جهانی بناها و محوطه‌های تاریخی" },
-    22: { title: "روز جهانی زمین پاک" },
-    23: { title: "روز جهانی کتاب و حق مؤلف" },
-    25: { title: "روز جهانی مبارزه با مالاریا" },
-    29: { title: "روز جهانی رقص و روز یادبود قربانیان زلزله" },
-  },
-  5: {
-    1: { title: "روز جهانی کارگر" },
-    3: { title: "روز جهانی آزادی مطبوعات" },
-    4: { title: "روز جنگ ستارگان" },
-    12: { title: "روز جهانی پرستار" },
-    15: { title: "روز جهانی خانواده" },
-    17: { title: "روز جهانی مخابرات و جامعه اطلاعاتی" },
-    21: { title: "روز جهانی تنوع فرهنگی برای گفتگو و توسعه" },
-    22: { title: "روز بین‌المللی تنوع زیستی" },
-    29: { title: "روز جهانی نیروهای حافظ صلح سازمان ملل" },
-    31: { title: "روز جهانی بدون دخانیات" },
-  },
-  6: {
-    1: { title: "روز جهانی والدین" },
-    4: { title: "روز جهانی کودکان بی‌گناه قربانی تجاوز" },
-    5: { title: "روز جهانی محیط زیست" },
-    8: { title: "روز جهانی اقیانوس‌ها" },
-    12: { title: "روز جهانی مبارزه با کار کودکان" },
-    17: { title: "روز جهانی مبارزه با بیابان‌زایی و خشکسالی" },
-    20: { title: "روز جهانی پناهندگان" },
-    23: { title: "روز جهانی خدمات عمومی سازمان ملل" },
-    26: {
-      title: "روز جهانی مبارزه با سوءمصرف مواد مخدر و حمایت از قربانیان شکنجه",
-    },
-  },
-  7: {
-    11: { title: "روز جهانی جمعیت" },
-    15: { title: "روز جهانی مهارت‌های جوانان" },
-    17: { title: "روز جهانی ایموجی" },
-    18: { title: "روز بین‌المللی نلسون ماندلا" },
-    28: { title: "روز جهانی هپاتیت" },
-    30: { title: "روز جهانی دوستی" },
-  },
-  8: {
-    9: { title: "روز جهانی مردمان بومی" },
-    10: { title: "روز جهانی تنبلی" },
-    12: { title: "روز جهانی جوانان" },
-    13: { title: "روز جهانی چپ‌دست‌ها" },
-    19: { title: "روز جهانی عکاسی و روز جهانی بشردوستی" },
-    21: { title: "روز جهانی یادبود قربانیان تروریسم" },
-    23: { title: "روز جهانی یادبود تجارت برده و لغو آن" },
-  },
-  9: {
-    5: { title: "روز جهانی خیریه" },
-    8: { title: "روز جهانی سوادآموزی" },
-    9: { title: "روز جهانی حفاظت از آموزش در برابر حمله" },
-    15: { title: "روز جهانی دموکراسی" },
-    16: { title: "روز جهانی حفاظت از لایه ازن" },
-    21: { title: "روز جهانی صلح" },
-    27: { title: "روز جهانی جهانگردی و گردشگری" },
-  },
-  10: {
-    1: { title: "روز جهانی سالمندان و روز جهانی قهوه" },
-    2: { title: "روز جهانی عدم خشونت" },
-    4: { title: "روز جهانی حیوانات" },
-    5: { title: "روز جهانی معلم" },
-    6: { title: "روز جهانی مسکن" },
-    9: { title: "روز جهانی پست" },
-    10: { title: "روز جهانی بهداشت روان" },
-    13: { title: "روز جهانی کاهش خطر بلایا" },
-    15: { title: "روز جهانی زنان روستایی" },
-    16: { title: "روز جهانی غذا" },
-    17: { title: "روز جهانی ریشه‌کنی فقر" },
-    24: { title: "روز ملل متحد" },
-    29: { title: "روز جهانی اینترنت" },
-  },
-  11: {
-    6: { title: "روز جهانی پیشگیری از بهره‌برداری از محیط‌زیست در جنگ" },
-    10: { title: "روز جهانی علم در خدمت صلح و توسعه" },
-    14: { title: "روز جهانی دیابت" },
-    16: { title: "روز بین‌المللی بردباری" },
-    19: { title: "روز جهانی مردان" },
-    20: { title: "روز جهانی کودک" },
-    21: { title: "روز جهانی تلویزیون" },
-    25: { title: "روز جهانی مبارزه با خشونت علیه زنان" },
-    29: { title: "روز جهانی همبستگی با مردم فلسطین" },
-  },
-  12: {
-    1: { title: "روز جهانی ایدز" },
-    2: { title: "روز جهانی لغو برده‌داری" },
-    3: { title: "روز جهانی معلولان" },
-    5: { title: "روز جهانی خاک و روز جهانی داوطلب" },
-    7: { title: "روز جهانی هوانوردی کشوری" },
-    9: { title: "روز جهانی مبارزه با فساد" },
-    10: { title: "روز حقوق بشر" },
-    11: { title: "روز بین‌المللی کوهستان" },
-    18: { title: "روز جهانی مهاجران" },
-    20: { title: "روز جهانی همبستگی انسانی" },
-    28: { title: "روز جهانی سینما" },
-  },
-};
+const WEDNESDAY = 4; // JalaliDate.weekDay: Saturday = 0 ... Friday = 6
+const PROGRAMMER_DAY_OF_YEAR = 256;
+const MS_PER_DAY = 86400000;
+
+class OccasionRules {
+  /** Last Wednesday of Esfand. */
+  static isChaharshanbeSuri(jm, jalaliDate, daysInMonth) {
+    return (
+      jm === 12 &&
+      jalaliDate.weekDay === WEDNESDAY &&
+      jalaliDate.day > daysInMonth - 7
+    );
+  }
+
+  /** 256th day of the Gregorian year (13 Sep, or 12 Sep in leap years). */
+  static isProgrammerDay(gregorian) {
+    const dayOfYear = Math.round(
+      (Date.UTC(
+        gregorian.getFullYear(),
+        gregorian.getMonth(),
+        gregorian.getDate(),
+      ) -
+        Date.UTC(gregorian.getFullYear(), 0, 0)) /
+        MS_PER_DAY,
+    );
+    return dayOfYear === PROGRAMMER_DAY_OF_YEAR;
+  }
+
+  /** True when the next Gregorian day already belongs to another hijri month. */
+  static isLastDayOfHijriMonth(gregorian, hijri) {
+    const next = new Date(gregorian.getTime() + MS_PER_DAY);
+    return HijriDate.fromGregorian(next).month !== hijri.month;
+  }
+}
 
 /**
- * LocalOccasionsRepository — builds an object shaped as
- * `{ [day]: { holiday, event: [{ title, holiday, tag }] } }` purely from
- * the local datasets above. This is the ONLY data source EventsService
- * uses. `tag` is set at the source (شمسی / قمری / میلادی) — never
- * guessed from text.
+ * LocalOccasionsRepository — builds
+ * `{ [day]: { holiday, event: [{ title, holiday, tag }] } }` from the local
+ * datasets. `tag` is set at the source (شمسی / قمری / میلادی).
  */
+const monthCache = new Map();
+
 class LocalOccasionsRepository {
+  static #collect(events, titles, tag, holiday) {
+    for (const title of titles) {
+      events.push({ title, holiday, tag });
+    }
+    return holiday;
+  }
+
   static getMonthData(jy, jm, daysInMonth) {
+    const cacheKey = `${jy}-${jm}`;
+    const cached = monthCache.get(cacheKey);
+    if (cached) return cached;
+
     const data = {};
     for (let d = 1; d <= daysInMonth; d += 1) {
       const jalaliDate = new JalaliDate(jy, jm, d);
       const gregorian = jalaliDate.toGregorian();
       const hijri = HijriDate.fromGregorian(gregorian);
-
-      const events = []; // { title, holiday, tag }
+      const events = [];
       let isHoliday = false;
 
-      const solar = SOLAR_OCCASIONS[jm] && SOLAR_OCCASIONS[jm][d];
-      if (solar) {
-        events.push({
-          title: solar.title,
-          holiday: !!solar.holiday,
-          tag: "شمسی",
-        });
-        if (solar.holiday) isHoliday = true;
+      const solarTitles = SOLAR_OCCASIONS[jm]?.[d];
+      if (solarTitles) {
+        isHoliday =
+          LocalOccasionsRepository.#collect(
+            events,
+            solarTitles,
+            "شمسی",
+            SOLAR_HOLIDAYS.has(`${jm}-${d}`),
+          ) || isHoliday;
+      }
+      if (OccasionRules.isChaharshanbeSuri(jm, jalaliDate, daysInMonth)) {
+        events.push({ title: "چهارشنبه‌سوری", holiday: false, tag: "شمسی" });
       }
 
-      const lunar =
-        LUNAR_OCCASIONS[hijri.month] && LUNAR_OCCASIONS[hijri.month][hijri.day];
-      if (lunar) {
-        events.push({
-          title: lunar.title,
-          holiday: !!lunar.holiday,
-          tag: "قمری",
-        });
-        if (lunar.holiday) isHoliday = true;
+      const lunarTitles = LUNAR_OCCASIONS[hijri.month]?.[hijri.day];
+      if (lunarTitles) {
+        isHoliday =
+          LocalOccasionsRepository.#collect(
+            events,
+            lunarTitles,
+            "قمری",
+            LUNAR_HOLIDAYS.has(`${hijri.month}-${hijri.day}`),
+          ) || isHoliday;
+      }
+      const lastDayRule = LUNAR_LAST_DAY_OCCASIONS[hijri.month];
+      if (
+        lastDayRule &&
+        hijri.day >= 29 &&
+        OccasionRules.isLastDayOfHijriMonth(gregorian, hijri)
+      ) {
+        isHoliday =
+          LocalOccasionsRepository.#collect(
+            events,
+            lastDayRule.titles,
+            "قمری",
+            lastDayRule.holiday,
+          ) || isHoliday;
       }
 
-      const gm = gregorian.getMonth() + 1;
-      const gd = gregorian.getDate();
-      const intl = INTL_OCCASIONS[gm] && INTL_OCCASIONS[gm][gd];
-      if (intl) {
-        events.push({ title: intl.title, holiday: false, tag: "میلادی" });
+      const intlTitles =
+        INTL_OCCASIONS[gregorian.getMonth() + 1]?.[gregorian.getDate()];
+      if (intlTitles) {
+        LocalOccasionsRepository.#collect(events, intlTitles, "میلادی", false);
+      }
+      if (OccasionRules.isProgrammerDay(gregorian)) {
+        events.push({
+          title: "روز گرامیداشت برنامه‌نویسان",
+          holiday: false,
+          tag: "میلادی",
+        });
       }
 
       if (events.length) {
         data[String(d)] = { holiday: isHoliday, event: events };
       }
     }
+
+    monthCache.set(cacheKey, data);
     return data;
   }
 
   static getDayData(jy, jm, jd) {
-    const jalaliDate = new JalaliDate(jy, jm, jd);
-    const daysInMonth = jalaliDate.daysInMonth();
+    const daysInMonth = new JalaliDate(jy, jm, jd).daysInMonth();
     const monthData = LocalOccasionsRepository.getMonthData(
       jy,
       jm,
       daysInMonth,
     );
     return monthData[String(jd)] || null;
-  }
-}
-
-class EventsService {
-  /**
-   * Returns { solarEvents, gregorianEvents, hijriEvents, isHoliday }.
-   * All three event arrays are sourced exclusively from
-   * LocalOccasionsRepository (SOLAR_OCCASIONS / LUNAR_OCCASIONS /
-   * INTL_OCCASIONS), split by their `tag`. js/events.js / EventRepository
-   * is no longer consulted anywhere in this service.
-   */
-  static async getEventsForDay(jalaliDate) {
-    const local = {
-      solarEvents: [],
-      gregorianEvents: [],
-      hijriEvents: [],
-      isHoliday: jalaliDate.weekDay === 5,
-    };
-
-    const dayData = LocalOccasionsRepository.getDayData(
-      jalaliDate.year,
-      jalaliDate.month,
-      jalaliDate.day,
-    );
-
-    if (dayData) {
-      local.isHoliday = local.isHoliday || !!dayData.holiday;
-      dayData.event.forEach((e) => {
-        const item = { title: e.title, holiday: !!e.holiday };
-        if (e.tag === "شمسی") local.solarEvents.push(item);
-        else if (e.tag === "قمری") local.hijriEvents.push(item);
-        else if (e.tag === "میلادی") local.gregorianEvents.push(item);
-      });
-    }
-
-    return local;
-  }
-
-  static async getMonthHolidayMap(jy, jm) {
-    const daysInMonth = new JalaliDate(jy, jm, 1).daysInMonth();
-    const monthData = LocalOccasionsRepository.getMonthData(
-      jy,
-      jm,
-      daysInMonth,
-    );
-    const map = {};
-    Object.keys(monthData).forEach((day) => {
-      map[day] = !!monthData[day].holiday;
-    });
-    return map;
-  }
-
-  static async getMonthEventsList(jy, jm, daysInMonth) {
-    const monthData = LocalOccasionsRepository.getMonthData(
-      jy,
-      jm,
-      daysInMonth,
-    );
-    const results = [];
-
-    for (let d = 1; d <= daysInMonth; d += 1) {
-      const dateObj = new JalaliDate(jy, jm, d);
-      const items = [];
-
-      const dayData = monthData[String(d)];
-      if (dayData && Array.isArray(dayData.event)) {
-        dayData.event.forEach((e) => {
-          items.push({
-            text: e.title,
-            holiday: !!e.holiday,
-            tag: e.tag, // منشأ واقعی (شمسی/قمری/میلادی)، بدون حدس‌زدن روی متن
-          });
-        });
-      }
-
-      if (items.length) {
-        const isHoliday =
-          dateObj.weekDay === 5 ||
-          (dayData && !!dayData.holiday) ||
-          items.some((it) => it.holiday);
-        results.push({ day: d, isHoliday, items });
-      }
-    }
-
-    return results;
   }
 }
 
