@@ -585,6 +585,75 @@ class LocalOccasionsRepository {
   }
 }
 
+class EventsService {
+  /**
+   * Returns { solarEvents, gregorianEvents, hijriEvents, isHoliday }.
+   * All three arrays come from LocalOccasionsRepository, split by `tag`.
+   */
+  static async getEventsForDay(jalaliDate) {
+    const result = {
+      solarEvents: [],
+      gregorianEvents: [],
+      hijriEvents: [],
+      isHoliday: jalaliDate.weekDay === 5,
+    };
+
+    const dayData = LocalOccasionsRepository.getDayData(
+      jalaliDate.year,
+      jalaliDate.month,
+      jalaliDate.day,
+    );
+    if (!dayData) return result;
+
+    result.isHoliday = result.isHoliday || !!dayData.holiday;
+
+    for (const e of dayData.event) {
+      const item = { title: e.title, holiday: !!e.holiday };
+      if (e.tag === "شمسی") result.solarEvents.push(item);
+      else if (e.tag === "قمری") result.hijriEvents.push(item);
+      else if (e.tag === "میلادی") result.gregorianEvents.push(item);
+    }
+
+    return result;
+  }
+
+  static async getMonthHolidayMap(jy, jm) {
+    const daysInMonth = new JalaliDate(jy, jm, 1).daysInMonth();
+    const monthData = LocalOccasionsRepository.getMonthData(jy, jm, daysInMonth);
+    const map = {};
+
+    for (const day of Object.keys(monthData)) {
+      map[day] = !!monthData[day].holiday;
+    }
+    return map;
+  }
+
+  static async getMonthEventsList(jy, jm, daysInMonth) {
+    const monthData = LocalOccasionsRepository.getMonthData(jy, jm, daysInMonth);
+    const results = [];
+
+    for (let d = 1; d <= daysInMonth; d += 1) {
+      const dayData = monthData[String(d)];
+      if (!dayData || !Array.isArray(dayData.event)) continue;
+
+      const items = dayData.event.map((e) => ({
+        text: e.title,
+        holiday: !!e.holiday,
+        tag: e.tag,
+      }));
+
+      const isHoliday =
+        new JalaliDate(jy, jm, d).weekDay === 5 ||
+        !!dayData.holiday ||
+        items.some((it) => it.holiday);
+
+      results.push({ day: d, isHoliday, items });
+    }
+
+    return results;
+  }
+}
+
 window.EventsService = EventsService;
 window.detectOccasionTag = detectOccasionTag;
 window.LocalOccasionsRepository = LocalOccasionsRepository;
