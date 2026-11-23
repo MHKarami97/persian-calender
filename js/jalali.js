@@ -176,6 +176,31 @@ class JalaliDate {
     return new JalaliDate(r.jy, r.jm, r.jd);
   }
 
+  dayOfYear() {
+    if (this.month <= 6) {
+      return (this.month - 1) * 31 + this.day;
+    }
+    return 186 + (this.month - 7) * 30 + this.day;
+  }
+
+  daysRemainingInYear() {
+    const totalDays = this.isLeapYear ? 366 : 365;
+    return totalDays - this.dayOfYear();
+  }
+
+  weekOfYear() {
+    const dayOfYr = this.dayOfYear();
+    const firstDay = new JalaliDate(this.year, 1, 1);
+    const startOffset = (firstDay.weekDay + 1) % 7;
+    return Math.ceil((dayOfYr + startOffset) / 7);
+  }
+
+  diffDays(other) {
+    const jdn1 = JalaliAlgorithm.j2d(this.year, this.month, this.day);
+    const jdn2 = JalaliAlgorithm.j2d(other.year, other.month, other.day);
+    return jdn1 - jdn2;
+  }
+
   toString() {
     const p = (n) => String(n).padStart(2, '0');
     return `${this.year}/${p(this.month)}/${p(this.day)}`;
@@ -185,7 +210,26 @@ class JalaliDate {
   equals(other) { return this.year === other.year && this.month === other.month && this.day === other.day; }
 }
 
-window.JalaliAlgorithm = JalaliAlgorithm;
-window.JalaliDate = JalaliDate;
-window.PERSIAN_MONTH_NAMES = PERSIAN_MONTH_NAMES;
-window.PERSIAN_WEEKDAY_NAMES = PERSIAN_WEEKDAY_NAMES;
+function toPersianDigits(input) {
+  if (input === null || input === undefined) return '';
+  const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return String(input).replace(/[0-9]/g, (w) => persianDigits[+w]);
+}
+
+if (typeof window !== "undefined") {
+  window.toPersianDigits = toPersianDigits;
+  window.JalaliAlgorithm = JalaliAlgorithm;
+  window.JalaliDate = JalaliDate;
+  window.PERSIAN_MONTH_NAMES = PERSIAN_MONTH_NAMES;
+  window.PERSIAN_WEEKDAY_NAMES = PERSIAN_WEEKDAY_NAMES;
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    toPersianDigits,
+    JalaliAlgorithm,
+    JalaliDate,
+    PERSIAN_MONTH_NAMES,
+    PERSIAN_WEEKDAY_NAMES,
+  };
+}

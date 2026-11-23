@@ -1,36 +1,36 @@
-/* Desktop calendar layout (flex-based, stable with dynamic/accordion content).
-   Mobile layout remains unchanged.
-   Requires one small HTML change: wrap the day-detail card and the
-   month-events card together inside <div class="calendar-side-col">...</div>
-   See instructions provided alongside this file. */
+/* Desktop calendar layout (grid-based, robust with dynamic/accordion content).
+   Mobile layout remains cleanly stacked. */
 @media (min-width: 1024px) {
   .page:not(.is-active) {
     display: none !important;
   }
 
   #page-calendar.is-active {
-    display: flex !important;
-    flex-direction: row-reverse !important; /* rtl: first child (calendar) ends up on the right */
+    display: grid !important;
+    grid-template-columns: 400px 1fr !important;
+    gap: var(--space-4) !important;
     align-items: flex-start !important;
-    gap: var(--space-2) !important;
   }
 
-  #page-calendar.is-active > .card:first-child {
-    flex: 0 0 400px !important;
-    min-width: 320px !important;
-    max-width: 440px !important;
+  #today-hero-card {
+    grid-column: 1 / -1 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .calendar-grid-card {
+    grid-column: 1 !important;
     margin: 0 !important;
   }
 
-  #page-calendar.is-active > .calendar-side-col {
-    flex: 1 1 auto !important;
+  .calendar-side-col {
+    grid-column: 2 !important;
     min-width: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: var(--space-2) !important;
+    gap: var(--space-3) !important;
   }
 
-  #page-calendar.is-active > .calendar-side-col > .card {
+  .calendar-side-col > .card {
     margin: 0 !important;
   }
 }

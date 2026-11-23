@@ -652,8 +652,46 @@ class EventsService {
 
     return results;
   }
+
+  static searchOccasions(year, keyword) {
+    if (!keyword || !keyword.trim()) return [];
+    const query = keyword.trim().toLowerCase();
+    const results = [];
+
+    for (let m = 1; m <= 12; m++) {
+      const daysInMonth = new JalaliDate(year, m, 1).daysInMonth();
+      const monthData = LocalOccasionsRepository.getMonthData(year, m, daysInMonth);
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dayData = monthData[String(d)];
+        if (!dayData || !Array.isArray(dayData.event)) continue;
+        for (const ev of dayData.event) {
+          if (ev.title.toLowerCase().includes(query)) {
+            results.push({
+              year,
+              month: m,
+              day: d,
+              title: ev.title,
+              holiday: !!ev.holiday,
+              tag: ev.tag,
+            });
+          }
+        }
+      }
+    }
+    return results;
+  }
 }
 
-window.EventsService = EventsService;
-window.detectOccasionTag = detectOccasionTag;
-window.LocalOccasionsRepository = LocalOccasionsRepository;
+if (typeof window !== "undefined") {
+  window.EventsService = EventsService;
+  window.detectOccasionTag = detectOccasionTag;
+  window.LocalOccasionsRepository = LocalOccasionsRepository;
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    EventsService,
+    detectOccasionTag,
+    LocalOccasionsRepository,
+  };
+}

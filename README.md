@@ -13,11 +13,12 @@
 | `js/jalali.js` | تبدیل دقیق شمسی↔میلادی (الگوریتم مرجع jalaali-js) | Static Utility + Value Object |
 | `js/hijri.js` | تبدیل قمری↔میلادی (الگوریتم جدولی کویتی) | Static Utility + Value Object |
 | `js/events.js` | مناسبت‌های ثابت شمسی/میلادی (بدون نیاز به سرویس) | Repository Pattern |
-| `js/events-service.js` | دریافت مناسبت‌های قمری/رسمی از API + کش ۳۰ روزه در localStorage | Decorator + Cache-Aside |
-| `js/prayer-times.js` | محاسبه اوقات شرعی بر پایه فرمول موضع خورشید (بدون API) | Strategy Pattern |
+| `js/events-service.js` | دریافت مناسبت‌های قمری/رسمی و جستجو در مناسبت‌ها | Decorator + Cache-Aside |
+| `js/notes-service.js` | مدیریت یادداشت‌ها و یادآورهای شخصی کاربر و پشتیبان‌گیری | Repository Pattern (Offline) |
+| `js/prayer-times.js` | محاسبه اوقات شرعی، زاویه قبله‌نما، شمارش معکوس و لیست شهرهای ایران | Strategy Pattern + Astronomical Math |
 | `js/age-calculator.js` | محاسبه سن دقیق شمسی | Service (SRP) |
-| `js/theme.js` | مدیریت تم روشن/تاریک | Observer Pattern |
-| `js/app.js` | هماهنگ‌کننده کل اپ (Controllers) | Controller / Facade |
+| `js/theme.js` | مدیریت تم روشن/تاریک/AMOLED مشکی | Observer Pattern |
+| `js/app.js` | هماهنگ‌کننده کل اپ، ژست‌های حرکتی، جستجو، مودال‌ها و ناوبری | Controller / Facade |
 | `sw.js` | سرویس‌ورکر برای PWA و کش آفلاین | Cache-First / Network-First Hybrid |
 
 ## چرا فقط بخشی از داده از سرویس خارجی گرفته می‌شود؟

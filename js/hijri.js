@@ -226,6 +226,16 @@ class HijriDate {
   format() { return `${this.day} ${this.monthName} ${this.year}`; }
 }
 
-window.HijriAlgorithm = HijriAlgorithm;
-window.HijriDate = HijriDate;
-window.HIJRI_MONTH_NAMES = HIJRI_MONTH_NAMES;
+if (typeof window !== "undefined") {
+  window.HijriAlgorithm = HijriAlgorithm;
+  window.HijriDate = HijriDate;
+  window.HIJRI_MONTH_NAMES = HIJRI_MONTH_NAMES;
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    HijriAlgorithm,
+    HijriDate,
+    HIJRI_MONTH_NAMES,
+  };
+}

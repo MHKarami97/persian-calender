@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "persian-date-v1.0.19";
+﻿const CACHE_NAME = "persian-date-v1.1.3";
 const OFFLINE_PAGE = "/offline.html";
 
 const PRECACHE_URLS = [
