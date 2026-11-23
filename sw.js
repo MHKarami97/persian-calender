@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "persian-date-vf3e9f15c";
+﻿const CACHE_NAME = "persian-date-vf648d623";
 const OFFLINE_PAGE = "/offline.html";
 
 const PRECACHE_URLS = [
@@ -18,7 +18,7 @@ const PRECACHE_URLS = [
   "/assets/fonts/webfonts/Vazirmatn-Thin.woff2",
   "/assets/fonts/webfonts/Vazirmatn[wght].woff2",
   "/assets/desktop-calendar-layout.dd0ea2af.css",
-  "/assets/styles.a8877f48.css",
+  "/assets/styles.d70fce58.css",
   "/js/age-calculator.aaaf4e7b.js",
   "/js/app.5f921c8d.js",
   "/js/events-service.e5aba4ec.js",
