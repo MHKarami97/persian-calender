@@ -216,6 +216,12 @@ class CalendarController {
     this.monthEventsBody = document.getElementById("month-events-body");
     this.monthEventsList = document.getElementById("month-events-list");
 
+    this.dayEventsToggleButton = document.getElementById(
+      "day-events-toggle-btn",
+    );
+    this.dayEventsBody = document.getElementById("day-events-body");
+    this.dayEventsCountBadge = document.getElementById("day-events-count-badge");
+
     this.monthEventsRequestId = 0;
     this.dayEventsRequestId = 0;
 
@@ -238,6 +244,21 @@ class CalendarController {
   }
 
   registerEvents() {
+    this.dayEventsToggleButton?.addEventListener("click", () => {
+      const isOpen =
+        this.dayEventsToggleButton.getAttribute("aria-expanded") === "true";
+
+      this.dayEventsToggleButton.setAttribute(
+        "aria-expanded",
+        String(!isOpen),
+      );
+
+      if (this.dayEventsBody) {
+        this.dayEventsBody.hidden = isOpen;
+      }
+      HapticService.trigger(8);
+    });
+
     this.monthEventsToggleButton?.addEventListener("click", () => {
       const isOpen =
         this.monthEventsToggleButton.getAttribute("aria-expanded") === "true";
@@ -769,6 +790,14 @@ class CalendarController {
           tag: "میلادی",
         });
       });
+
+      if (this.dayEventsCountBadge) {
+        const count = items.length;
+        const hasHoliday = items.some((it) => it.holiday);
+        this.dayEventsCountBadge.textContent =
+          count > 0 ? `${toPersianDigits(count)} مناسبت` : "بدون مناسبت";
+        this.dayEventsCountBadge.classList.toggle("has-holiday", hasHoliday);
+      }
 
       if (!items.length) {
         this.eventsListElement.innerHTML = `
