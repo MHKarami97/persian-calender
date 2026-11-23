@@ -22,15 +22,21 @@
 </head>
 
 <body>
-  <div id="updateNotification" class="update-notification hidden">
+  <div id="updateNotification" class="update-notification hidden" role="alert" aria-live="polite">
     <div class="update-content">
-      <span class="update-icon">🔄</span>
-      <div class="update-text">
-        <strong>نسخه جدید موجود است!</strong>
-        <p>برای استفاده از آخرین نسخه، صفحه را به‌روزرسانی کنید.</p>
+      <div class="update-icon-box" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
       </div>
-      <button id="updateButton" class="update-button">به‌روزرسانی</button>
-      <button id="dismissUpdate" class="dismiss-button" title="بستن">✕</button>
+      <div class="update-text">
+        <strong>نسخه جدید آماده است!</strong>
+        <p>برای دریافت امکانات و تغییرات جدید کلیک کنید.</p>
+      </div>
+      <div class="update-actions">
+        <button id="updateButton" class="update-button" type="button">به‌روزرسانی</button>
+        <button id="dismissUpdate" class="dismiss-button" type="button" aria-label="بستن اعلان" title="بستن">✕</button>
+      </div>
     </div>
   </div>
 
