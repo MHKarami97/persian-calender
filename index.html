@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+  <title>تقویم شمسی هوشمند</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#f8fafc">
+  <meta name="description" content="تقویم شمسی، قمری و میلادی همراه با مناسبت‌ها، یادداشت روزانه، تبدیل تاریخ، اوقات شرعی، قبله‌نما و محاسبه سن">
+  <meta name="apple-mobile-web-app-title" content="تقویم شمسی هوشمند" />
+  <link rel="icon" type="image/png" href="/assets/icons/favicon-96-96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg" />
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="/assets/fonts/Vazirmatn-font-face.css" />
+  <link rel="stylesheet" href="/assets/styles.18c1d7d1.css" />
+  <link rel="stylesheet" href="/assets/desktop-calendar-layout.dd0ea2af.css">
+  <link rel="manifest" href="/manifest.json" />
+</head>
+
+<body>
+  <div id="updateNotification" class="update-notification hidden">
+    <div class="update-content">
+      <span class="update-icon">🔄</span>
+      <div class="update-text">
+        <strong>نسخه جدید موجود است!</strong>
+        <p>برای استفاده از آخرین نسخه، صفحه را به‌روزرسانی کنید.</p>
+      </div>
+      <button id="updateButton" class="update-button">به‌روزرسانی</button>
+      <button id="dismissUpdate" class="dismiss-button" title="بستن">✕</button>
+    </div>
+  </div>
+
+  <div class="app-shell">
+
+    <header class="app-header">
+      <div class="app-header__title"><span id="header-title">تقویم شمسی</span></div>
+      <div class="app-header__actions">
+        <button class="theme-toggle" id="search-open-btn" aria-label="جستجو در تقویم" title="جستجو در مناسبت‌ها و یادداشت‌ها">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+        </button>
+        <button class="theme-toggle" id="theme-toggle-btn" aria-label="تغییر تم روشن/تاریک">
+          <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page: Calendar -->
+    <section class="page is-active" id="page-calendar" aria-label="تقویم">
+
+      <!-- Hero Today Summary Card -->
+      <div class="card hero-card" id="today-hero-card">
+        <div class="hero-card__top">
+          <div class="hero-card__date-box">
+            <span class="hero-card__badge" id="hero-today-badge">امروز</span>
+            <h1 class="hero-card__title" id="hero-full-date">—</h1>
+          </div>
+          <div class="hero-card__countdown" id="hero-next-prayer-box">
+            <span class="hero-card__countdown-label" id="hero-prayer-label">نوبت شرعی بعدی</span>
+            <span class="hero-card__countdown-value" id="hero-prayer-countdown">--:--</span>
+          </div>
+        </div>
+        <div class="hero-card__stats">
+          <div class="hero-stat-item">
+            <span class="hero-stat-item__label">هفته سال</span>
+            <strong class="hero-stat-item__val" id="hero-week-num">—</strong>
+          </div>
+          <div class="hero-stat-item">
+            <span class="hero-stat-item__label">روز سال</span>
+            <strong class="hero-stat-item__val" id="hero-day-of-year">—</strong>
+          </div>
+          <div class="hero-stat-item">
+            <span class="hero-stat-item__label">مانده تا پایان سال</span>
+            <strong class="hero-stat-item__val" id="hero-days-left">—</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card calendar-grid-card">
+        <div class="calendar-nav">
+          <button class="icon-btn" id="prev-month-btn" aria-label="ماه قبل" title="ماه قبل">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"></path>
+            </svg>
+          </button>
+          <button type="button" class="calendar-nav__label calendar-nav__label--btn" id="month-year-label" aria-label="انتخاب ماه و سال" title="کلیک کنید تا سال و ماه را انتخاب کنید">
+            <span id="month-year-text">—</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9l6 6 6-6"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" id="next-month-btn" aria-label="ماه بعد" title="ماه بعد">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+          </button>
+        </div>
+        <button class="today-btn" id="today-btn" aria-label="برگشت به روز جاری">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 3"></path>
+          </svg>
+          بازگشت به امروز
+        </button>
+        <div class="weekday-row" id="weekday-row"></div>
+        <div class="days-grid" id="days-grid"></div>
+        <div class="sub-date-row" id="sub-date-row"></div>
+      </div>
+
+      <div class="calendar-side-col">
+        <!-- Day Occasions Detail Card -->
+        <div class="card day-detail" id="day-detail-card">
+          <h2 class="card__title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <path d="M16 2v4M8 2v4M3 10h18"></path>
+            </svg>
+            مناسبت‌های روز
+          </h2>
+          <div id="day-events-list">
+            <div class="empty-state">در حال بارگذاری...</div>
+          </div>
+        </div>
+
+        <!-- Personal Notes Card -->
+        <div class="card notes-card" id="notes-card">
+          <div class="card__header-row">
+            <h2 class="card__title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              یادداشت‌های من
+            </h2>
+            <button type="button" class="btn-sm" id="open-add-note-btn">+ ثبت یادداشت</button>
+          </div>
+          <div id="day-notes-list">
+            <div class="empty-state">یادداشتی برای این روز ثبت نشده است.</div>
+          </div>
+        </div>
+
+        <!-- Month Events Accordion Card -->
+        <div class="card month-events-card">
+          <button type="button" class="month-events-toggle" id="month-events-toggle-btn" aria-expanded="false"
+            aria-controls="month-events-body">
+            <span class="month-events-toggle__title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+                <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"></path>
+              </svg>
+              <span>مناسبت‌های این ماه</span>
+            </span>
+            <svg class="month-events-toggle__chevron" id="month-events-chevron" width="18" height="18"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M6 9l6 6 6-6"></path>
+            </svg>
+          </button>
+          <div class="month-events-body" id="month-events-body" hidden>
+            <div id="month-events-list">
+              <div class="empty-state">در حال بارگذاری...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Page: Date Tools (Converter, Diff, Add/Sub) -->
+    <section class="page" id="page-converter" aria-label="ابزارهای تاریخ">
+      <div class="sub-nav-tabs" role="tablist">
+        <button type="button" class="sub-nav-tab is-active" data-subpage="subpage-convert">تبدیل تاریخ</button>
+        <button type="button" class="sub-nav-tab" data-subpage="subpage-diff">فاصله دو تاریخ</button>
+        <button type="button" class="sub-nav-tab" data-subpage="subpage-calc">افزودن / کاستن روز</button>
+      </div>
+
+      <!-- Subpage 1: Conversion -->
+      <div class="converter-subpage is-active" id="subpage-convert">
+        <div class="card">
+          <h2 class="card__title">تبدیل تاریخ بین تقویم‌ها</h2>
+          <div class="tabs-row" role="tablist">
+            <button class="tab-chip" data-conv-from="jalali" aria-selected="true">از شمسی</button>
+            <button class="tab-chip" data-conv-from="gregorian">از میلادی</button>
+            <button class="tab-chip" data-conv-from="hijri">از قمری</button>
+          </div>
+          <div class="field-group">
+            <label class="field-label">تاریخ مبدا</label>
+            <div class="field-row">
+              <input class="field-input" type="number" id="conv-day" placeholder="روز" min="1" max="31">
+              <input class="field-input" type="number" id="conv-month" placeholder="ماه" min="1" max="12">
+              <input class="field-input" type="number" id="conv-year" placeholder="سال">
+            </div>
+          </div>
+          <button class="btn-primary" id="conv-submit-btn">تبدیل کن</button>
+          <div class="result-box" id="conv-result" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Subpage 2: Date Difference -->
+      <div class="converter-subpage" id="subpage-diff">
+        <div class="card">
+          <h2 class="card__title">محاسبه فاصله بین دو تاریخ شمسی</h2>
+          <div class="field-group">
+            <label class="field-label">تاریخ اول (مبدا)</label>
+            <div class="field-row">
+              <input class="field-input" type="number" id="diff-day-1" placeholder="روز" min="1" max="31">
+              <input class="field-input" type="number" id="diff-month-1" placeholder="ماه" min="1" max="12">
+              <input class="field-input" type="number" id="diff-year-1" placeholder="سال">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">تاریخ دوم (مقصد)</label>
+            <div class="field-row">
+              <input class="field-input" type="number" id="diff-day-2" placeholder="روز" min="1" max="31">
+              <input class="field-input" type="number" id="diff-month-2" placeholder="ماه" min="1" max="12">
+              <input class="field-input" type="number" id="diff-year-2" placeholder="سال">
+            </div>
+          </div>
+          <button class="btn-primary" id="diff-submit-btn">محاسبه فاصله</button>
+          <div class="result-box" id="diff-result" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Subpage 3: Add / Subtract Days -->
+      <div class="converter-subpage" id="subpage-calc">
+        <div class="card">
+          <h2 class="card__title">افزودن یا کاستن روز از تاریخ شمسی</h2>
+          <div class="field-group">
+            <label class="field-label">تاریخ مبدا</label>
+            <div class="field-row">
+              <input class="field-input" type="number" id="calc-day" placeholder="روز" min="1" max="31">
+              <input class="field-input" type="number" id="calc-month" placeholder="ماه" min="1" max="12">
+              <input class="field-input" type="number" id="calc-year" placeholder="سال">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">عملیات و تعداد روزها</label>
+            <div class="field-row">
+              <select class="field-select" id="calc-op" style="max-width:130px;">
+                <option value="add">افزودن (+)</option>
+                <option value="sub">کاستن (-)</option>
+              </select>
+              <input class="field-input" type="number" id="calc-days-count" placeholder="تعداد روزها (مثلاً ۴۵)" min="1">
+            </div>
+          </div>
+          <button class="btn-primary" id="calc-submit-btn">محاسبه تاریخ مقصد</button>
+          <div class="result-box" id="calc-result" style="display:none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Prayer Times & Qibla -->
+    <section class="page" id="page-prayer" aria-label="اوقات شرعی">
+      <div class="card">
+        <h2 class="card__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <path
+              d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42">
+            </path>
+          </svg>
+          اوقات شرعی
+        </h2>
+
+        <div class="field-group">
+          <label class="field-label" for="prayer-city-select">انتخاب استان / شهر</label>
+          <select class="field-select" id="prayer-city-select"></select>
+        </div>
+
+        <button type="button" class="btn-secondary" id="use-location-btn" style="width:100%;margin-bottom:var(--space-3);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          تشخیص خودکار موقعیت من (GPS)
+        </button>
+
+        <p id="prayer-location-label" style="font-size:13px;color:var(--color-text-muted);margin-bottom:var(--space-3);text-align:center;">مکان: تهران</p>
+
+        <div class="prayer-countdown-banner" id="prayer-countdown-banner">
+          <span class="prayer-countdown-banner__label">
+            <span>⏳</span>
+            <span id="prayer-countdown-label">نوبت شرعی بعدی</span>
+          </span>
+          <strong class="prayer-countdown-banner__timer" id="prayer-countdown-timer">--:--:--</strong>
+        </div>
+
+        <div class="prayer-times-grid" id="prayer-times-grid"></div>
+      </div>
+
+      <!-- Qibla Compass Card -->
+      <div class="card qibla-card">
+        <h2 class="card__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+          </svg>
+          قبله‌نما و جهت کعبه
+        </h2>
+        <div class="qibla-display">
+          <div class="qibla-compass">
+            <div class="qibla-compass__north">N (شمال)</div>
+            <div class="qibla-compass__kaaba-marker" id="qibla-kaaba-marker">
+              <span class="qibla-compass__kaaba-icon" title="جهت قبله">🕋</span>
+            </div>
+            <div class="qibla-compass__needle" id="qibla-needle"></div>
+            <div class="qibla-compass__center-dot"></div>
+          </div>
+          <div class="qibla-info">
+            <div style="font-size:13px;color:var(--color-text-muted);">زاویه قبله نسبت به شمال جغرافیایی:</div>
+            <div class="qibla-angle-value" id="qibla-angle-value">---°</div>
+            <small style="color:var(--color-text-muted);display:block;margin-top:4px;" id="qibla-compass-hint">گوشی را به صورت افقی و رو به شمال تنظیم کنید</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Age Calculator -->
+    <section class="page" id="page-age" aria-label="محاسبه سن">
+      <div class="card">
+        <h2 class="card__title">محاسبه سن (شمسی)</h2>
+        <div class="field-group">
+          <label class="field-label">تاریخ تولد</label>
+          <div class="field-row">
+            <input class="field-input" type="number" id="age-day" placeholder="روز" min="1" max="31">
+            <input class="field-input" type="number" id="age-month" placeholder="ماه" min="1" max="12">
+            <input class="field-input" type="number" id="age-year" placeholder="سال">
+          </div>
+        </div>
+        <button class="btn-primary" id="age-submit-btn">محاسبه سن</button>
+        <div class="result-box" id="age-result" style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- Page: About & Settings -->
+    <section class="page" id="page-about" aria-label="درباره و تنظیمات">
+      <!-- Theme Selection Card -->
+      <div class="card">
+        <h2 class="card__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+          </svg>
+          حالت نمایش و تم برنامه
+        </h2>
+        <div class="theme-options-grid">
+          <button type="button" class="theme-option-btn" data-theme-choice="light">☀️ روشن</button>
+          <button type="button" class="theme-option-btn" data-theme-choice="dark">🌙 تاریک</button>
+          <button type="button" class="theme-option-btn" data-theme-choice="amoled">🖤 مشکی (AMOLED)</button>
+        </div>
+      </div>
+
+      <!-- Backup / Restore Card -->
+      <div class="card">
+        <h2 class="card__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          پشتیبان‌گیری از یادداشت‌ها
+        </h2>
+        <p style="font-size:13px;color:var(--color-text-muted);line-height:1.7;margin:0 0 var(--space-3);">
+          برای جلوگیری از پاک شدن یادداشت‌های شخصی یا انتقال آن‌ها به دستگاهی دیگر، فایل پشتیبان دریافت کنید یا فایل قبلی را بارگذاری نمایید.
+        </p>
+        <div class="btn-row">
+          <button type="button" class="btn-secondary" id="export-notes-btn">
+            📥 دانلود پشتیبان (JSON)
+          </button>
+          <label class="btn-secondary" style="margin:0;">
+            📤 بازیابی پشتیبان
+            <input type="file" id="import-notes-file" accept=".json" style="display:none;">
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="about-page">
+          <h2 style="text-align:center;margin-bottom:var(--space-4);">درباره این اپلیکیشن</h2>
+          <p style="text-align:center;color:var(--color-text-muted);margin-bottom:var(--space-4);line-height:1.8;">
+            تقویم شمسی هوشمند یک اپلیکیشن پیشرفته برای مدیریت تقویم شمسی، قمری و میلادی است. این اپلیکیشن دارای
+            امکاناتی مانند نمایش مناسبت‌ها، یادداشت روزانه، تبدیل تاریخ، محاسبه سن، اوقات شرعی و قبله‌نما می‌باشد.
+          </p>
+          <div style="text-align:center;margin-bottom:var(--space-4);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round"
+              style="width:48px;height:48px;color:var(--color-primary);margin-bottom:var(--space-2);">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <path d="M16 2v4M8 2v4M3 10h18"></path>
+            </svg>
+          </div>
+          <p style="text-align:center;color:var(--color-text-muted);margin-bottom:var(--space-3);line-height:1.8;">
+            توسعه‌دهنده: <strong style="color:var(--color-text);">محمد حسین کرمی</strong>
+          </p>
+          <p style="text-align:center;">
+            <a href="https://mhkarami97.ir" target="_blank" rel="noopener noreferrer"
+              style="display:inline-flex;align-items:center;gap:6px;color:var(--color-primary);text-decoration:none;font-weight:600;padding:var(--space-2) var(--space-4);border:1px solid var(--color-primary);border-radius:var(--radius-md);transition:background var(--duration-fast) var(--ease-out);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" style="width:18px;height:18px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z">
+                </path>
+              </svg>
+              mhkarami97.ir
+            </a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav" role="tablist" aria-label="ناوبری اصلی">
+    <button class="bottom-nav__item" data-page="page-calendar" aria-current="page">
+      <span class="bottom-nav__icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <path d="M16 2v4M8 2v4M3 10h18"></path>
+        </svg>
+      </span>
+      <span class="bottom-nav__label">تقویم</span>
+    </button>
+    <button class="bottom-nav__item" data-page="page-converter">
+      <span class="bottom-nav__icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M17 1l4 4-4 4"></path>
+          <path d="M3 11V9a4 4 0 014-4h14"></path>
+          <path d="M7 23l-4-4 4-4"></path>
+          <path d="M21 13v2a4 4 0 01-4 4H3"></path>
+        </svg>
+      </span>
+      <span class="bottom-nav__label">ابزار تاریخ</span>
+    </button>
+    <button class="bottom-nav__item" data-page="page-prayer">
+      <span class="bottom-nav__icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"></path>
+        </svg>
+      </span>
+      <span class="bottom-nav__label">اوقات شرعی</span>
+    </button>
+    <button class="bottom-nav__item" data-page="page-age">
+      <span class="bottom-nav__icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </span>
+      <span class="bottom-nav__label">محاسبه سن</span>
+    </button>
+    <button class="bottom-nav__item" data-page="page-about">
+      <span class="bottom-nav__icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 16v-4M12 8h.01"></path>
+        </svg>
+      </span>
+      <span class="bottom-nav__label">تنظیمات</span>
+    </button>
+  </nav>
+
+  <!-- Modal: Quick Month & Year Picker -->
+  <div class="modal" id="modal-picker" role="dialog" aria-modal="true" aria-labelledby="picker-modal-title">
+    <div class="modal__backdrop" id="picker-backdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h3 class="modal__title" id="picker-modal-title">انتخاب ماه و سال</h3>
+        <button type="button" class="modal__close" id="picker-close-btn" aria-label="بستن">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="field-group">
+          <label class="field-label" for="picker-year-select">انتخاب سال</label>
+          <select class="field-select" id="picker-year-select"></select>
+        </div>
+        <label class="field-label">انتخاب ماه</label>
+        <div class="picker-months-grid" id="picker-months-grid"></div>
+      </div>
+      <div class="modal__footer">
+        <button type="button" class="btn-primary" id="picker-apply-btn" style="width:auto;min-height:40px;padding:0 24px;">مشاهده تقویم</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Search Occasions & Notes -->
+  <div class="modal" id="modal-search" role="dialog" aria-modal="true" aria-labelledby="search-modal-title">
+    <div class="modal__backdrop" id="search-backdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h3 class="modal__title" id="search-modal-title">جستجو در تقویم</h3>
+        <button type="button" class="modal__close" id="search-close-btn" aria-label="بستن">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="search-input-wrap">
+          <input type="text" class="search-input" id="search-input" placeholder="جستجوی مناسبت، یادداشت، روز...">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+        </div>
+        <div class="search-results" id="search-results">
+          <div class="empty-state">عبارت مورد نظر خود را تایپ کنید...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Note -->
+  <div class="modal" id="modal-note" role="dialog" aria-modal="true" aria-labelledby="note-modal-title">
+    <div class="modal__backdrop" id="note-backdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h3 class="modal__title" id="note-modal-title">ثبت یادداشت روزانه</h3>
+        <button type="button" class="modal__close" id="note-close-btn" aria-label="بستن">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="field-group">
+          <label class="field-label" for="note-title-input">عنوان رویداد یا یادداشت</label>
+          <input type="text" class="field-input" id="note-title-input" placeholder="مثال: جلسه کاری، تماس با دکتر...">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="note-text-input">توضیحات (اختیاری)</label>
+          <textarea class="field-input" id="note-text-input" rows="3" style="min-height:80px;padding:8px 12px;" placeholder="جزئیات یادداشت..."></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">دسته‌بندی</label>
+          <div class="category-pills" id="note-category-pills">
+            <button type="button" class="category-pill is-active" data-cat="reminder">🔔 یادآور</button>
+            <button type="button" class="category-pill" data-cat="personal">🌱 شخصی</button>
+            <button type="button" class="category-pill" data-cat="work">💼 کاری</button>
+            <button type="button" class="category-pill" data-cat="birthday">🎂 تولد و مناسبت</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button type="button" class="btn-primary" id="note-save-btn" style="width:auto;min-height:40px;padding:0 24px;">ذخیره یادداشت</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/jalali.e1e12e41.js"></script>
+  <script src="js/hijri.3df72a3b.js"></script>
+  <script src="js/events-service.e5aba4ec.js"></script>
+  <script src="js/notes-service.bead9a00.js"></script>
+  <script src="js/prayer-times.2f71f483.js"></script>
+  <script src="js/age-calculator.aaaf4e7b.js"></script>
+  <script src="js/theme.be9a85af.js"></script>
+  <script src="js/app.7b7abd3f.js"></script>
+</body>
+
+</html>

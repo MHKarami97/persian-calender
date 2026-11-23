@@ -1,0 +1,36 @@
+/* Desktop calendar layout (grid-based, robust with dynamic/accordion content).
+   Mobile layout remains cleanly stacked. */
+@media (min-width: 1024px) {
+  .page:not(.is-active) {
+    display: none !important;
+  }
+
+  #page-calendar.is-active {
+    display: grid !important;
+    grid-template-columns: 400px 1fr !important;
+    gap: var(--space-4) !important;
+    align-items: flex-start !important;
+  }
+
+  #today-hero-card {
+    grid-column: 1 / -1 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .calendar-grid-card {
+    grid-column: 1 !important;
+    margin: 0 !important;
+  }
+
+  .calendar-side-col {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--space-3) !important;
+  }
+
+  .calendar-side-col > .card {
+    margin: 0 !important;
+  }
+}
