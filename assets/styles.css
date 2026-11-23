@@ -532,8 +532,9 @@ button {
 
 .event-item {
   display: flex;
+  align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--color-border);
 }
 .event-item:last-child {
@@ -541,27 +542,81 @@ button {
 }
 .event-item__badge {
   flex-shrink: 0;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  margin-top: 6px;
+  margin-top: 7px;
   background: var(--color-primary);
 }
 .event-item--holiday .event-item__badge {
   background: var(--color-holiday);
 }
 .event-item__text {
-  font-size: 14px;
-  line-height: 1.7;
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-text);
+  word-break: break-word;
+}
+.event-item--holiday .event-item__text {
+  color: var(--color-holiday);
 }
 .event-item__tag {
-  display: inline-block;
-  font-size: 11px;
-  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: flex-start;
+  height: 22px;
+  padding: 0 8px;
   border-radius: var(--radius-full);
   background: var(--color-surface-alt);
   color: var(--color-text-muted);
-  margin-inline-start: var(--space-2);
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+  margin-top: 2px;
+}
+
+/* Distinct color-coded tags */
+.event-item__tag--solar {
+  color: var(--color-primary);
+  background: rgba(13, 148, 136, 0.08);
+  border-color: rgba(13, 148, 136, 0.22);
+}
+[data-theme="dark"] .event-item__tag--solar,
+[data-theme="amoled"] .event-item__tag--solar {
+  color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.12);
+  border-color: rgba(45, 212, 191, 0.25);
+}
+
+.event-item__tag--hijri {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.22);
+}
+[data-theme="dark"] .event-item__tag--hijri,
+[data-theme="amoled"] .event-item__tag--hijri {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+.event-item__tag--gregorian {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.22);
+}
+[data-theme="dark"] .event-item__tag--gregorian,
+[data-theme="amoled"] .event-item__tag--gregorian {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border-color: rgba(96, 165, 250, 0.25);
 }
 
 .empty-state {
@@ -789,10 +844,6 @@ button {
   margin-bottom: 10px;
 }
 
-.month-events-card {
-  margin-bottom: 70px;
-}
-
 .install-prompt {
   position: fixed;
   bottom: calc(max(14px, env(safe-area-inset-bottom)) + 78px);
@@ -1014,7 +1065,12 @@ button {
   }
 }
 
-.month-events-card { padding: 0; overflow: hidden; }
+.month-events-card {
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+}
 
 .month-events-toggle {
   width: 100%;
@@ -1029,11 +1085,23 @@ button {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  min-height: 44px;
+  min-height: 48px;
+  transition: background var(--duration-fast);
+}
+.month-events-toggle:hover {
+  background: var(--color-surface-alt);
 }
 
-.month-events-toggle__title { display: flex; align-items: center; gap: var(--space-2); }
-.month-events-toggle__title svg { width: 18px; height: 18px; stroke: var(--color-primary); }
+.month-events-toggle__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.month-events-toggle__title svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--color-primary);
+}
 
 .month-events-toggle__chevron {
   flex-shrink: 0;
@@ -1045,36 +1113,84 @@ button {
 
 .month-events-body {
   padding: 0 var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .month-events-day {
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--color-border);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  transition: border-color var(--duration-fast), background var(--duration-fast);
 }
-.month-events-day:first-child { border-top: none; }
+
+.month-events-day--holiday {
+  background: rgba(220, 38, 38, 0.04);
+  border-color: rgba(220, 38, 38, 0.18);
+}
+[data-theme="dark"] .month-events-day--holiday,
+[data-theme="amoled"] .month-events-day--holiday {
+  background: rgba(248, 113, 113, 0.06);
+  border-color: rgba(248, 113, 113, 0.2);
+}
 
 .month-events-day__label {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: space-between;
   font-size: 13px;
   font-weight: 700;
   color: var(--color-primary);
-  margin-bottom: var(--space-2);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--color-border);
 }
+
+.month-events-day__label-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .month-events-day__label .day-number {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
+  min-width: 26px;
+  height: 26px;
   border-radius: var(--radius-full);
-  background: var(--color-surface-alt);
+  background: var(--color-surface);
+  color: var(--color-primary);
   font-size: 12px;
+  font-weight: 800;
+  border: 1px solid var(--color-border);
 }
-.month-events-day--holiday .month-events-day__label { color: var(--color-holiday); }
 
-.month-events-day .event-item { padding: var(--space-2) 0; }
+.month-events-day--holiday .month-events-day__label {
+  color: var(--color-holiday);
+}
+
+.month-events-day--holiday .month-events-day__label .day-number {
+  background: var(--color-holiday);
+  color: #ffffff;
+  border-color: var(--color-holiday);
+}
+
+.month-events-day__holiday-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--color-holiday);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.month-events-day .event-item {
+  padding: 6px 0;
+}
 
 /* -------------------------------------------------------------------------- */
 /* Extended Styles: Hero Card, Modals, Notes, Qibla, Animations, Sub-Tabs     */

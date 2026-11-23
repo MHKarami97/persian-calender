@@ -104,6 +104,13 @@ class ModalManager {
   }
 }
 
+function getEventTagClass(tag) {
+  if (tag === "شمسی") return "event-item__tag--solar";
+  if (tag === "قمری") return "event-item__tag--hijri";
+  if (tag === "میلادی") return "event-item__tag--gregorian";
+  return "";
+}
+
 /* -------------------------------------------------------------------------- */
 /* Navigation Controller                                                      */
 /* -------------------------------------------------------------------------- */
@@ -639,14 +646,23 @@ class CalendarController {
       }
 
       this.monthEventsList.innerHTML = monthList
-        .map(
-          (dayItem) => `
+        .map((dayItem) => {
+          const date = new JalaliDate(year, month, dayItem.day);
+          const weekdayName = PERSIAN_WEEKDAY_NAMES[(date.weekDay + 1) % 7];
+          return `
             <div class="month-events-day${
               dayItem.isHoliday ? " month-events-day--holiday" : ""
             }">
               <div class="month-events-day__label">
-                <span class="day-number">${toPersianDigits(dayItem.day)}</span>
-                <span>${PERSIAN_MONTH_NAMES[month - 1]}</span>
+                <div class="month-events-day__label-left">
+                  <span class="day-number">${toPersianDigits(dayItem.day)}</span>
+                  <span>${weekdayName}، ${toPersianDigits(dayItem.day)} ${PERSIAN_MONTH_NAMES[month - 1]}</span>
+                </div>
+                ${
+                  dayItem.isHoliday
+                    ? '<span class="month-events-day__holiday-badge">تعطیل</span>'
+                    : ""
+                }
               </div>
 
               ${dayItem.items
@@ -655,16 +671,16 @@ class CalendarController {
                     <div class="event-item${
                       item.holiday ? " event-item--holiday" : ""
                     }">
-                      <span class="badge"></span>
-                      <span class="text">${item.text}</span>
-                      <span class="event-item__tag">${item.tag}</span>
+                      <span class="event-item__badge"></span>
+                      <span class="event-item__text">${item.text}</span>
+                      <span class="event-item__tag ${getEventTagClass(item.tag)}">${item.tag}</span>
                     </div>
                   `,
                 )
                 .join("")}
             </div>
-          `,
-        )
+          `;
+        })
         .join("");
     } catch (error) {
       console.error("Failed to load month events:", error);
@@ -770,10 +786,8 @@ class CalendarController {
               item.holiday ? " event-item--holiday" : ""
             }">
               <span class="event-item__badge"></span>
-              <span class="event-item__text">
-                ${item.text}
-                <span class="event-item__tag">${item.tag}</span>
-              </span>
+              <span class="event-item__text">${item.text}</span>
+              <span class="event-item__tag ${getEventTagClass(item.tag)}">${item.tag}</span>
             </div>
           `,
         )
@@ -1028,7 +1042,7 @@ class SearchController {
           <span class="search-result-item__text">
             ${item.title}
           </span>
-          <span class="event-item__tag" style="${item.type === 'note' ? 'color:var(--color-accent);' : ''}">${item.tag}</span>
+          <span class="event-item__tag ${getEventTagClass(item.tag)}" style="${item.type === 'note' ? 'color:var(--color-accent);' : ''}">${item.tag}</span>
         </div>
       `,
       )
