@@ -120,16 +120,27 @@
       <div class="calendar-side-col">
         <!-- Day Occasions Detail Card -->
         <div class="card day-detail" id="day-detail-card">
-          <h2 class="card__title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-              <path d="M16 2v4M8 2v4M3 10h18"></path>
+          <button type="button" class="day-events-toggle" id="day-events-toggle-btn" aria-expanded="false"
+            aria-controls="day-events-body">
+            <span class="day-events-toggle__title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+              </svg>
+              <span>مناسبت‌های روز</span>
+              <span class="day-events-count-badge" id="day-events-count-badge"></span>
+            </span>
+            <svg class="day-events-toggle__chevron" id="day-events-chevron" width="18" height="18"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M6 9l6 6 6-6"></path>
             </svg>
-            مناسبت‌های روز
-          </h2>
-          <div id="day-events-list">
-            <div class="empty-state">در حال بارگذاری...</div>
+          </button>
+          <div class="day-events-body" id="day-events-body" hidden>
+            <div id="day-events-list">
+              <div class="empty-state">در حال بارگذاری...</div>
+            </div>
           </div>
         </div>
 
