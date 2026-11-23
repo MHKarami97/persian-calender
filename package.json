@@ -1,0 +1,21 @@
+{
+  "name": "persian-calendar",
+  "version": "1.2.0",
+  "description": "Smart Persian Calendar PWA & Android TWA",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "preview": "node scripts/server.js dist 8080",
+    "start": "node scripts/server.js . 8080",
+    "test": "node scripts/test.js"
+  },
+  "keywords": [
+    "persian-calendar",
+    "jalali",
+    "pwa",
+    "twa",
+    "iran"
+  ],
+  "author": "MHKarami97",
+  "license": "MIT"
+}

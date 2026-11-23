@@ -1800,6 +1800,15 @@ class ServiceWorkerUpdateManager {
 
       this.checkWaitingWorker();
       this.startPeriodicUpdateCheck();
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          this.registration?.update().catch(() => {});
+        }
+      });
+      window.addEventListener("focus", () => {
+        this.registration?.update().catch(() => {});
+      });
     } catch (error) {
       console.warn("Service Worker registration failed:", error);
     }
