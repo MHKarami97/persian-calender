@@ -320,27 +320,89 @@
       </div>
 
       <!-- Qibla Compass Card -->
-      <div class="card qibla-card">
+      <div class="card qibla-card" id="qibla-card">
         <h2 class="card__title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
           </svg>
-          قبله‌نما و جهت کعبه
+          قبله‌نما و قطب‌نما
         </h2>
         <div class="qibla-display">
-          <div class="qibla-compass">
-            <div class="qibla-compass__north">N (شمال)</div>
-            <div class="qibla-compass__kaaba-marker" id="qibla-kaaba-marker">
-              <span class="qibla-compass__kaaba-icon" title="جهت قبله">🕋</span>
+          <div class="qibla-compass-wrapper">
+            <!-- Fixed Phone Top Pointer (Direction device is facing) -->
+            <div class="qibla-phone-pointer" aria-hidden="true" title="جهت روبه‌روی گوشی">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 20L4 7h16l-8 13z"></path>
+              </svg>
             </div>
-            <div class="qibla-compass__needle" id="qibla-needle"></div>
-            <div class="qibla-compass__center-dot"></div>
+
+            <!-- Compass Outer Bezel -->
+            <div class="qibla-compass" id="qibla-compass-bezel">
+              <!-- Inner Rotating Dial / Rose (rotates smoothly by -heading) -->
+              <div class="qibla-rose" id="qibla-rose">
+                <!-- Cardinal Direction Labels -->
+                <span class="qibla-rose__point qibla-rose__point--n">شمال</span>
+                <span class="qibla-rose__point qibla-rose__point--e">شرق</span>
+                <span class="qibla-rose__point qibla-rose__point--s">جنوب</span>
+                <span class="qibla-rose__point qibla-rose__point--w">غرب</span>
+
+                <!-- Degree Graduation Ticks generated in JS -->
+                <div class="qibla-rose__ticks" id="qibla-rose-ticks" aria-hidden="true"></div>
+
+                <!-- Kaaba Marker on the Rose (at qiblaAngle) -->
+                <div class="qibla-kaaba-marker" id="qibla-kaaba-marker" title="جهت کعبه">
+                  <div class="qibla-kaaba-pin">
+                    <span class="qibla-kaaba-icon">🕋</span>
+                    <span class="qibla-kaaba-label">قبله</span>
+                  </div>
+                </div>
+
+                <!-- Needle (North tip red / South tip silver) -->
+                <div class="qibla-needle-stem" aria-hidden="true">
+                  <div class="qibla-needle-tip qibla-needle-tip--north"></div>
+                  <div class="qibla-needle-tip qibla-needle-tip--south"></div>
+                </div>
+              </div>
+
+              <!-- Center Pivot Cap -->
+              <div class="qibla-center-cap" aria-hidden="true"></div>
+            </div>
           </div>
+
+          <!-- Qibla Info & Realtime Status -->
           <div class="qibla-info">
-            <div style="font-size:13px;color:var(--color-text-muted);">زاویه قبله نسبت به شمال جغرافیایی:</div>
-            <div class="qibla-angle-value" id="qibla-angle-value">---°</div>
-            <small style="color:var(--color-text-muted);display:block;margin-top:4px;" id="qibla-compass-hint">گوشی را به صورت افقی و رو به شمال تنظیم کنید</small>
+            <!-- Status Badge: changes when aligned -->
+            <div class="qibla-status-badge" id="qibla-status-badge">
+              <span class="qibla-status-dot"></span>
+              <span id="qibla-status-text">گوشی را صاف و افقی نگه دارید</span>
+            </div>
+
+            <!-- Metrics: City Qibla Angle + Current Phone Heading -->
+            <div class="qibla-metrics-row">
+              <div class="qibla-metric">
+                <span class="qibla-metric__label">زاویه قبله</span>
+                <strong class="qibla-metric__val" id="qibla-angle-value">---°</strong>
+              </div>
+              <div class="qibla-metric">
+                <span class="qibla-metric__label">جهت فعلی گوشی</span>
+                <strong class="qibla-metric__val" id="qibla-heading-value">---°</strong>
+              </div>
+            </div>
+
+            <!-- Dynamic Turn Instruction -->
+            <div class="qibla-instruction" id="qibla-instruction">
+              گوشی را بچرخانید تا نشانگر 🕋 روبه‌روی فلش بالا قرار گیرد
+            </div>
+
+            <!-- Sensor calibration / iOS permission button -->
+            <button id="qibla-sensor-btn" class="qibla-sensor-btn" type="button" style="display:none;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+              </svg>
+              <span>فعال‌سازی سنسور قطب‌نما</span>
+            </button>
           </div>
         </div>
       </div>
