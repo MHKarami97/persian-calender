@@ -1316,6 +1316,269 @@ class DateToolsController {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Modern Qibla & Compass Controller                                          */
+/* -------------------------------------------------------------------------- */
+
+class QiblaCompassController {
+  constructor() {
+    this.bezel = document.getElementById("qibla-compass-bezel");
+    this.rose = document.getElementById("qibla-rose");
+    this.kaabaMarker = document.getElementById("qibla-kaaba-marker");
+    this.angleVal = document.getElementById("qibla-angle-value");
+    this.headingVal = document.getElementById("qibla-heading-value");
+    this.statusBadge = document.getElementById("qibla-status-badge");
+    this.statusText = document.getElementById("qibla-status-text");
+    this.instruction = document.getElementById("qibla-instruction");
+    this.sensorBtn = document.getElementById("qibla-sensor-btn");
+
+    this.qiblaAngle = 213; // default Tehran
+    this.currentRoseAngle = 0; // Unwrapped angle for rose rotation (-heading)
+    this.targetRoseAngle = 0;
+    this.currentHeading = 0;
+    this.isTracking = false;
+    this.hasReceivedSensorData = false;
+    this.wasAligned = false;
+    this.animFrameId = null;
+
+    this.handleOrientation = this.handleOrientation.bind(this);
+    this.animationLoop = this.animationLoop.bind(this);
+
+    this.initTicks();
+    this.initSensorPermission();
+    this.startTracking();
+  }
+
+  initTicks() {
+    const ticksContainer = document.getElementById("qibla-rose-ticks");
+    if (!ticksContainer || ticksContainer.children.length > 0) return;
+
+    const fragment = document.createDocumentFragment();
+    for (let deg = 0; deg < 360; deg += 15) {
+      if (deg % 90 === 0) continue; // Skip cardinal directions
+      const tick = document.createElement("span");
+      const isMajor = deg % 30 === 0;
+      tick.className = `qibla-tick ${isMajor ? "qibla-tick--major" : ""}`;
+      tick.style.transform = `rotate(${deg}deg)`;
+      fragment.appendChild(tick);
+    }
+    ticksContainer.appendChild(fragment);
+  }
+
+  setLocation(lat, lng) {
+    if (typeof QiblaCalculator !== "undefined" && lat && lng) {
+      this.qiblaAngle = QiblaCalculator.calculate(lat, lng);
+    } else {
+      this.qiblaAngle = 213;
+    }
+
+    if (this.angleVal) {
+      this.angleVal.textContent = `${toPersianDigits(this.qiblaAngle)}°`;
+    }
+
+    if (this.kaabaMarker) {
+      this.kaabaMarker.style.transform = `rotate(${this.qiblaAngle}deg)`;
+    }
+
+    this.updateReadout(this.currentHeading);
+  }
+
+  initSensorPermission() {
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function"
+    ) {
+      if (this.sensorBtn) {
+        this.sensorBtn.style.display = "inline-flex";
+        this.sensorBtn.addEventListener("click", async () => {
+          try {
+            const state = await DeviceOrientationEvent.requestPermission();
+            if (state === "granted") {
+              this.sensorBtn.style.display = "none";
+              this.startTracking();
+            } else {
+              if (typeof ToastService !== "undefined") {
+                ToastService.show("دسترسی به سنسور قطب‌نما داده نشد");
+              }
+            }
+          } catch (err) {
+            console.warn("Sensor permission error:", err);
+          }
+        });
+      }
+    }
+  }
+
+  startTracking() {
+    if (this.isTracking) return;
+    this.isTracking = true;
+
+    if ("ondeviceorientationabsolute" in window) {
+      window.addEventListener("deviceorientationabsolute", this.handleOrientation, true);
+    } else if ("ondeviceorientation" in window) {
+      window.addEventListener("deviceorientation", this.handleOrientation, true);
+    }
+
+    // Fallback message for devices without compass sensor (e.g. PC/laptop)
+    setTimeout(() => {
+      if (!this.hasReceivedSensorData) {
+        if (this.statusText) {
+          this.statusText.textContent = "حالت نمایش ثابت (قطب‌نما در موبایل فعال می‌شود)";
+        }
+        if (this.headingVal) {
+          this.headingVal.textContent = "---";
+        }
+        if (this.instruction) {
+          this.instruction.textContent = `زاویه قبله: ${toPersianDigits(this.qiblaAngle)}° نسبت به شمال (جنوب غربی)`;
+        }
+      }
+    }, 1500);
+  }
+
+  handleOrientation(event) {
+    if (event.alpha === null && typeof event.webkitCompassHeading === "undefined") {
+      return;
+    }
+
+    let heading = null;
+    let isTooTilted = false;
+
+    // 1. iOS Safari / WebKit gives direct compass heading (0..360 clockwise from North)
+    if (typeof event.webkitCompassHeading === "number" && !isNaN(event.webkitCompassHeading)) {
+      heading = event.webkitCompassHeading;
+    } else if (typeof event.alpha === "number" && !isNaN(event.alpha)) {
+      // 2. Android Chrome / W3C standard:
+      const beta = event.beta || 0;
+      const gamma = event.gamma || 0;
+      const alpha = event.alpha;
+
+      isTooTilted = Math.abs(beta) > 65 || Math.abs(gamma) > 65;
+
+      const degToRad = Math.PI / 180;
+      const radToDeg = 180 / Math.PI;
+
+      const _x = beta * degToRad;
+      const _y = gamma * degToRad;
+      const _z = alpha * degToRad;
+
+      const cX = Math.cos(_x);
+      const cZ = Math.cos(_z);
+      const sX = Math.sin(_x);
+      const sY = Math.sin(_y);
+      const sZ = Math.sin(_z);
+
+      const Ey_x = -cX * sZ - sX * sY * cZ;
+      const Ey_y =  cX * cZ - sX * sY * sZ;
+
+      let rawHeading = Math.atan2(Ey_x, Ey_y) * radToDeg;
+      heading = (rawHeading + 360) % 360;
+    }
+
+    if (heading === null) return;
+
+    this.hasReceivedSensorData = true;
+    this.currentHeading = heading;
+
+    // Target angle for the compass rose is -heading (so N always points to physical North)
+    const targetRose = -heading;
+
+    // Unwrapping: calculate the shortest angular difference to eliminate 360/0 jump
+    const currNorm = ((this.currentRoseAngle % 360) + 360) % 360;
+    const targetNorm = ((targetRose % 360) + 360) % 360;
+    let diff = targetNorm - currNorm;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+
+    this.targetRoseAngle = this.currentRoseAngle + diff;
+    this.wakeAnimation();
+
+    this.updateReadout(heading, isTooTilted);
+  }
+
+  updateReadout(heading, isTooTilted = false) {
+    if (this.headingVal) {
+      this.headingVal.textContent = `${toPersianDigits(Math.round(heading))}°`;
+    }
+
+    if (isTooTilted) {
+      if (this.statusText) {
+        this.statusText.textContent = "گوشی را افقی و صاف بگیرید";
+      }
+      if (this.statusBadge) {
+        this.statusBadge.classList.remove("is-aligned");
+      }
+      if (this.bezel) {
+        this.bezel.classList.remove("is-aligned");
+      }
+      return;
+    }
+
+    // Shortest angular difference between Qibla and current heading
+    let diff = ((this.qiblaAngle - heading + 540) % 360) - 180;
+    const absDiff = Math.abs(diff);
+    const isAligned = absDiff <= 4;
+
+    if (this.bezel) {
+      this.bezel.classList.toggle("is-aligned", isAligned);
+    }
+    if (this.statusBadge) {
+      this.statusBadge.classList.toggle("is-aligned", isAligned);
+    }
+
+    if (isAligned) {
+      if (this.statusText) {
+        this.statusText.textContent = "رو به قبله (🕋)";
+      }
+      if (this.instruction) {
+        this.instruction.textContent = "شما در جهت دقیق قبله قرار دارید";
+      }
+      if (!this.wasAligned) {
+        if (typeof HapticService !== "undefined") {
+          HapticService.trigger(35);
+        }
+        this.wasAligned = true;
+      }
+    } else {
+      this.wasAligned = false;
+      if (this.statusText) {
+        this.statusText.textContent = "در حال جهت‌یابی...";
+      }
+      const roundedDeg = toPersianDigits(Math.round(absDiff));
+      if (diff > 0) {
+        if (this.instruction) {
+          this.instruction.textContent = `${roundedDeg}° به سمت راست بچرخانید`;
+        }
+      } else {
+        if (this.instruction) {
+          this.instruction.textContent = `${roundedDeg}° به سمت چپ بچرخانید`;
+        }
+      }
+    }
+  }
+
+  wakeAnimation() {
+    if (this.animFrameId) return;
+    this.animationLoop();
+  }
+
+  animationLoop() {
+    const delta = this.targetRoseAngle - this.currentRoseAngle;
+    if (Math.abs(delta) > 0.05) {
+      this.currentRoseAngle += delta * 0.16;
+      if (this.rose) {
+        this.rose.style.transform = `rotate(${this.currentRoseAngle}deg)`;
+      }
+      this.animFrameId = requestAnimationFrame(this.animationLoop);
+    } else {
+      this.currentRoseAngle = this.targetRoseAngle;
+      if (this.rose) {
+        this.rose.style.transform = `rotate(${this.currentRoseAngle}deg)`;
+      }
+      this.animFrameId = null;
+    }
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /* Prayer Times & Qibla Controller                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -1332,6 +1595,7 @@ class PrayerTimesController {
     this.heroPrayerCountdown = document.getElementById("hero-prayer-countdown");
 
     this.location = this.loadSavedLocation();
+    this.compass = new QiblaCompassController();
 
     this.initCitySelect();
     this.initCompass();
@@ -1469,34 +1733,8 @@ class PrayerTimesController {
   }
 
   initCompass() {
-    const qiblaAngle = QiblaCalculator.calculate(
-      this.location.lat,
-      this.location.lng,
-    );
-    const angleEl = document.getElementById("qibla-angle-value");
-    const kaabaMarker = document.getElementById("qibla-kaaba-marker");
-    const needle = document.getElementById("qibla-needle");
-
-    if (angleEl) {
-      angleEl.textContent = `${toPersianDigits(qiblaAngle)}°`;
-    }
-    if (kaabaMarker) {
-      kaabaMarker.style.transform = `rotate(${qiblaAngle}deg)`;
-    }
-
-    // Device orientation sensor (mobile compass)
-    if (window.DeviceOrientationEvent) {
-      window.addEventListener(
-        "deviceorientation",
-        (event) => {
-          if (event.alpha !== null && needle) {
-            // Compass heading
-            const heading = event.webkitCompassHeading || 360 - event.alpha;
-            needle.style.transform = `rotate(${heading}deg)`;
-          }
-        },
-        true,
-      );
+    if (this.compass && this.location) {
+      this.compass.setLocation(this.location.lat, this.location.lng);
     }
   }
 
