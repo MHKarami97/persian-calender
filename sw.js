@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "persian-date-vec46fe2f";
+﻿const CACHE_NAME = "persian-date-v6f6d3308";
 const OFFLINE_PAGE = "/offline.html";
 
 const PRECACHE_URLS = [
@@ -21,7 +21,7 @@ const PRECACHE_URLS = [
   "/assets/styles.c627e283.css",
   "/js/age-calculator.aaaf4e7b.js",
   "/js/app.3c637af2.js",
-  "/js/events-service.e5aba4ec.js",
+  "/js/events-service.3c0dcde8.js",
   "/js/hijri.3df72a3b.js",
   "/js/jalali.e1e12e41.js",
   "/js/notes-service.bead9a00.js",
